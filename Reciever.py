@@ -74,10 +74,18 @@ async def main():
     device = DeviceBLE()
     try:
         await device.connect()
-        await asyncio.sleep(10)
         await device.notify()
+        # Keep running indefinitely to receive notifications
+        print("\nListening for button presses... Press Ctrl+C to stop")
+        while True:
+            await asyncio.sleep(1)  # Keep the event loop alive
+
+    except KeyboardInterrupt:
+        print("\n\nStopping...")
     except Exception as e:
-        print(e)
+        print(f"Error: {e}")
+    finally:
+        await device.disconnect()
 
 
 asyncio.run(main())
