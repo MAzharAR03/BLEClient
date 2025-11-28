@@ -3,6 +3,8 @@ from bleak import BleakScanner, BleakClient
 
 BUTTON_SERVICE_UUID = "0000feed-0000-1000-8000-00805f9b34fb"
 BUTTON_CHAR_UUID = "0000beef-0000-1000-8000-00805f9b34fb"
+TILT_CHAR_UUID = "446be5b0-93b7-4911-abbe-e4e18d545640"
+STEP_CHAR_UUID = "36d942a6-9e79-4812-8a8f-84a275f6b176"
 
 class DeviceBLE():
     def __init__(self):
@@ -10,6 +12,8 @@ class DeviceBLE():
         self.device = None
         self.uuid_button_service = BUTTON_SERVICE_UUID
         self.uuid_button_characteristic = BUTTON_CHAR_UUID
+        self.uuid_tilt_characteristic = TILT_CHAR_UUID
+        self.uuid_step_characteristic = STEP_CHAR_UUID
 
     async def discover(self):
         devices = await BleakScanner.discover(5.0, return_adv=True)
@@ -41,6 +45,7 @@ class DeviceBLE():
         except:
             raise Exception("Failed to disconnect")
 
+#this code is ai generated - change back to my code
     async def notify(self):
         """Starts notification subscription on the button characteristic."""
         if self.client and self.client.is_connected:
@@ -58,6 +63,8 @@ class DeviceBLE():
 
                 # Start notifying using the characteristic UUID
                 await self.client.start_notify(self.uuid_button_characteristic, self.button_handler)
+                await self.client.start_notify(TILT_CHAR_UUID, self.button_handler)
+                await self.client.start_notify(STEP_CHAR_UUID, self.button_handler)
                 print(f"Subscribed to notifications on {self.uuid_button_characteristic}")
             else:
                 print(f"ERROR: Characteristic {self.uuid_button_characteristic} not found in discovered services.")
@@ -66,8 +73,8 @@ class DeviceBLE():
     def button_handler(self, sender, data):
         """Handler for incoming characteristic notifications."""
         # Convert byte data to integer or string for display
-        value = int.from_bytes(data, byteorder='little')
-        print(f"Notification from handle {sender}: Button State ({value})")
+        value = data.decode('utf-8')
+        print(f"Notification from handle {sender}: {value}")
 
 
 async def main():
