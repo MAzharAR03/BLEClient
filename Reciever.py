@@ -1,4 +1,6 @@
 import asyncio
+import time
+
 from bleak import BleakScanner, BleakClient
 
 BUTTON_SERVICE_UUID = "0000feed-0000-1000-8000-00805f9b34fb"
@@ -6,7 +8,7 @@ BUTTON_CHAR_UUID = "0000beef-0000-1000-8000-00805f9b34fb"
 TILT_CHAR_UUID = "446be5b0-93b7-4911-abbe-e4e18d545640"
 STEP_CHAR_UUID = "36d942a6-9e79-4812-8a8f-84a275f6b176"
 
-class DeviceBLE():
+class DeviceBLE:
     def __init__(self):
         self.client = None
         self.device = None
@@ -16,7 +18,7 @@ class DeviceBLE():
         self.uuid_step_characteristic = STEP_CHAR_UUID
 
     async def discover(self):
-        devices = await BleakScanner.discover(5.0, return_adv=True)
+        devices = await BleakScanner.discover(10.0, return_adv=True)
         for device in devices:
             advertisement_data = devices[device][1]
             if BUTTON_SERVICE_UUID in advertisement_data.service_uuids:
@@ -73,6 +75,7 @@ class DeviceBLE():
     def button_handler(self, sender, data):
         """Handler for incoming characteristic notifications."""
         # Convert byte data to integer or string for display
+        print(int(round(time.time() * 1000)))
         value = data.decode('utf-8')
         print(f"Notification from handle {sender}: {value}")
 
