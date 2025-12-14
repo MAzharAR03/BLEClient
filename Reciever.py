@@ -1,5 +1,6 @@
 import asyncio
 import time
+import websockets
 
 from bleak import BleakScanner, BleakClient
 
@@ -7,6 +8,31 @@ BUTTON_SERVICE_UUID = "0000feed-0000-1000-8000-00805f9b34fb"
 BUTTON_CHAR_UUID = "0000beef-0000-1000-8000-00805f9b34fb"
 TILT_CHAR_UUID = "446be5b0-93b7-4911-abbe-e4e18d545640"
 STEP_CHAR_UUID = "36d942a6-9e79-4812-8a8f-84a275f6b176"
+
+class SocketHandler:
+    def __init__(self):
+        self.url = "localhost"
+        self.port = 9999
+        self.queue = asyncio.Queue()
+
+
+    async def handle_websocket(self,websocket):
+        async def sender():
+            while True:
+                message = await self.queue.get()
+                await websocket.send(message)
+
+        async def reciever():
+            async for message in websocket:
+                print(f"Recieved {message}")
+
+        try:
+            await asyncio.gather(sender(),reciever())
+        except websockets.ConnectionClosed:
+            pass
+
+    def addMessage(self,message):
+         self.queue.put_nowait(message)
 
 class DeviceBLE:
     def __init__(self):
@@ -16,6 +42,7 @@ class DeviceBLE:
         self.uuid_button_characteristic = BUTTON_CHAR_UUID
         self.uuid_tilt_characteristic = TILT_CHAR_UUID
         self.uuid_step_characteristic = STEP_CHAR_UUID
+        self.socketHandler = SocketHandler()
 
     async def discover(self):
         devices = await BleakScanner.discover(10.0, return_adv=True)
@@ -74,15 +101,19 @@ class DeviceBLE:
 
     def button_handler(self, sender, data):
         """Handler for incoming characteristic notifications."""
-        # Convert byte data to integer or string for display
-        print(int(round(time.time() * 1000)))
         value = data.decode('utf-8')
         print(f"Notification from handle {sender}: {value}")
+        self.socketHandler.addMessage(value)
 
 
 async def main():
     device = DeviceBLE()
+
+    async def runServer():
+        async with websockets.serve(device.socketHandler.handle_websocket,device.socketHandler.url, device.socketHandler.port):
+            await asyncio.Future()
     try:
+        server_task = asyncio.create_task(runServer())
         await device.connect()
         await device.notify()
         # Keep running indefinitely to receive notifications
