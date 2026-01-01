@@ -3,11 +3,15 @@ import time
 import websockets
 
 from bleak import BleakScanner, BleakClient
+from kagglehub.clients import CHUNK_SIZE
+
+from ReadFile import read_file
 
 BUTTON_SERVICE_UUID = "0000feed-0000-1000-8000-00805f9b34fb"
 BUTTON_CHAR_UUID = "0000beef-0000-1000-8000-00805f9b34fb"
 TILT_CHAR_UUID = "446be5b0-93b7-4911-abbe-e4e18d545640"
 STEP_CHAR_UUID = "36d942a6-9e79-4812-8a8f-84a275f6b176"
+LAYOUT_CHAR_UUID = "efcdbf7b-fee2-489b-8f79-b649aa50619b"
 
 class SocketHandler:
     def __init__(self):
@@ -22,12 +26,12 @@ class SocketHandler:
                 message = await self.queue.get()
                 await websocket.send(message)
 
-        async def reciever():
+        async def receiver():
             async for message in websocket:
-                print(f"Recieved {message}")
+                print(f"Received {message}")
 
         try:
-            await asyncio.gather(sender(),reciever())
+            await asyncio.gather(sender(),receiver())
         except websockets.ConnectionClosed:
             pass
 
@@ -45,9 +49,10 @@ class DeviceBLE:
         self.socketHandler = SocketHandler()
 
     async def discover(self):
-        devices = await BleakScanner.discover(10.0, return_adv=True)
+        devices = await BleakScanner.discover(5.0, return_adv=True)
         for device in devices:
             advertisement_data = devices[device][1]
+            print(advertisement_data)
             if BUTTON_SERVICE_UUID in advertisement_data.service_uuids:
                 if advertisement_data.rssi > -90:
                     self.device = devices[device]
@@ -74,12 +79,15 @@ class DeviceBLE:
         except:
             raise Exception("Failed to disconnect")
 
-#this code is ai generated - change back to my code
+
     async def notify(self):
-        """Starts notification subscription on the button characteristic."""
+        #await self.client._backend._acquire_mtu()
+        print("MTU:",self.client.mtu_size)
+        await self.send_file("Test.json",LAYOUT_CHAR_UUID)
         if self.client and self.client.is_connected:
             # Check if the characteristic exists in the discovered services
             characteristic = self.client.services.get_characteristic(self.uuid_button_characteristic)
+
 
             if characteristic:
                 print(f"Characteristic found: {characteristic.uuid}. Attempting to subscribe...")
@@ -100,10 +108,34 @@ class DeviceBLE:
                 print("Please check the UUIDs and ensure the Android device is advertising correctly.")
 
     def button_handler(self, sender, data):
-        """Handler for incoming characteristic notifications."""
         value = data.decode('utf-8')
         print(f"Notification from handle {sender}: {value}")
         self.socketHandler.addMessage(value)
+
+    async def send_file(self, filename, uuid):
+        if self.client and self.client.is_connected:
+            mtu_size = self.client.mtu_size
+            ATT_OVERHEAD = 3
+            CHUNK_SIZE = mtu_size - ATT_OVERHEAD
+            data = read_file(filename)
+            size = len(data)
+            await self.client.write_gatt_char(
+                uuid,
+                f"START".encode('utf-8'),
+                response=True
+            )
+            for i in range(0,len(data),CHUNK_SIZE):
+                chunk = data[i:i+CHUNK_SIZE]
+                await self.client.write_gatt_char(
+                    uuid,
+                    chunk,response=False
+                )
+            await self.client.write_gatt_char(
+                uuid,
+                f"END".encode('utf-8'),
+                response=True
+            )
+            print(f"File {filename} sent")
 
 
 async def main():
@@ -113,13 +145,12 @@ async def main():
         async with websockets.serve(device.socketHandler.handle_websocket,device.socketHandler.url, device.socketHandler.port):
             await asyncio.Future()
     try:
-        server_task = asyncio.create_task(runServer())
+        asyncio.create_task(runServer())
         await device.connect()
         await device.notify()
-        # Keep running indefinitely to receive notifications
         print("\nListening for button presses... Press Ctrl+C to stop")
         while True:
-            await asyncio.sleep(1)  # Keep the event loop alive
+            await asyncio.sleep(1)
 
     except KeyboardInterrupt:
         print("\n\nStopping...")
