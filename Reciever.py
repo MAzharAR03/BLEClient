@@ -1,9 +1,8 @@
 import asyncio
-import time
+import json
 import websockets
 
 from bleak import BleakScanner, BleakClient
-from kagglehub.clients import CHUNK_SIZE
 
 from ReadFile import read_file
 
@@ -14,10 +13,11 @@ STEP_CHAR_UUID = "36d942a6-9e79-4812-8a8f-84a275f6b176"
 LAYOUT_CHAR_UUID = "efcdbf7b-fee2-489b-8f79-b649aa50619b"
 
 class SocketHandler:
-    def __init__(self):
+    def __init__(self, ble_device):
         self.url = "localhost"
         self.port = 9999
         self.queue = asyncio.Queue()
+        self.ble_device = ble_device
 
 
     async def handle_websocket(self,websocket):
@@ -28,7 +28,12 @@ class SocketHandler:
 
         async def receiver():
             async for message in websocket:
-                print(f"Received {message}")
+                filename = "layout.json"
+                with open(filename,"w") as f:
+                    f.write(message)
+                print("JSON file received")
+                asyncio.create_task(self.ble_device.layout_received(filename))
+
 
         try:
             await asyncio.gather(sender(),receiver())
@@ -46,7 +51,7 @@ class DeviceBLE:
         self.uuid_button_characteristic = BUTTON_CHAR_UUID
         self.uuid_tilt_characteristic = TILT_CHAR_UUID
         self.uuid_step_characteristic = STEP_CHAR_UUID
-        self.socketHandler = SocketHandler()
+        self.socketHandler = SocketHandler(self)
 
     async def discover(self):
         devices = await BleakScanner.discover(5.0, return_adv=True)
@@ -57,6 +62,7 @@ class DeviceBLE:
                 if advertisement_data.rssi > -90:
                     self.device = devices[device]
                     return device
+
     async def connect(self):
         address = await self.discover()
         if address is not None:
@@ -73,32 +79,22 @@ class DeviceBLE:
 
     async def disconnect(self):
         try:
-            print("Disconnecting...")
             await self.client.disconnect()
-            print("Disconnected!")
         except:
             raise Exception("Failed to disconnect")
 
 
     async def notify(self):
-        #await self.client._backend._acquire_mtu()
-        print("MTU:",self.client.mtu_size)
-        await self.send_file("Test.json",LAYOUT_CHAR_UUID)
         if self.client and self.client.is_connected:
-            # Check if the characteristic exists in the discovered services
             characteristic = self.client.services.get_characteristic(self.uuid_button_characteristic)
 
 
             if characteristic:
                 print(f"Characteristic found: {characteristic.uuid}. Attempting to subscribe...")
-
-                # Print descriptors for debugging the 'Unreachable' issue
-                # This confirms the CCCD is present on the client side
                 print("Descriptors:")
                 for descriptor in characteristic.descriptors:
                     print(f"  - UUID: {descriptor.uuid}, Handle: {descriptor.handle}")
 
-                # Start notifying using the characteristic UUID
                 await self.client.start_notify(self.uuid_button_characteristic, self.button_handler)
                 await self.client.start_notify(TILT_CHAR_UUID, self.button_handler)
                 await self.client.start_notify(STEP_CHAR_UUID, self.button_handler)
@@ -110,7 +106,6 @@ class DeviceBLE:
     def button_handler(self, sender, data):
         value = data.decode('utf-8')
         print(f"Notification from handle {sender}: {value}")
-        self.socketHandler.addMessage(value)
 
     async def send_file(self, filename, uuid):
         if self.client and self.client.is_connected:
@@ -118,7 +113,6 @@ class DeviceBLE:
             ATT_OVERHEAD = 3
             CHUNK_SIZE = mtu_size - ATT_OVERHEAD
             data = read_file(filename)
-            size = len(data)
             await self.client.write_gatt_char(
                 uuid,
                 f"START".encode('utf-8'),
@@ -137,6 +131,8 @@ class DeviceBLE:
             )
             print(f"File {filename} sent")
 
+    async def layout_received(self,filename):
+        await self.send_file(filename,LAYOUT_CHAR_UUID)
 
 async def main():
     device = DeviceBLE()
