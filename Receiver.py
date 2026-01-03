@@ -6,8 +6,6 @@ from bleak import BleakScanner, BleakClient
 
 from ReadFile import read_file
 
-asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-
 BUTTON_SERVICE_UUID = "0000feed-0000-1000-8000-00805f9b34fb"
 BUTTON_CHAR_UUID = "0000beef-0000-1000-8000-00805f9b34fb"
 TILT_CHAR_UUID = "446be5b0-93b7-4911-abbe-e4e18d545640"
@@ -108,6 +106,8 @@ class DeviceBLE:
     def button_handler(self, sender, data):
         value = data.decode('utf-8')
         print(f"Notification from handle {sender}: {value}")
+        self.socketHandler.addMessage(value)
+
 
     async def send_file(self, filename, uuid):
         if self.client and self.client.is_connected:
@@ -146,7 +146,6 @@ async def main():
         asyncio.create_task(runServer())
         await device.connect()
         await device.notify()
-        print("\nListening for button presses... Press Ctrl+C to stop")
         while True:
             await asyncio.sleep(1)
 
