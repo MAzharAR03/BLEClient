@@ -6,6 +6,8 @@ from bleak import BleakScanner, BleakClient
 
 from ReadFile import read_file
 
+asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
 BUTTON_SERVICE_UUID = "0000feed-0000-1000-8000-00805f9b34fb"
 BUTTON_CHAR_UUID = "0000beef-0000-1000-8000-00805f9b34fb"
 TILT_CHAR_UUID = "446be5b0-93b7-4911-abbe-e4e18d545640"
