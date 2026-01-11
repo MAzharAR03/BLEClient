@@ -117,14 +117,15 @@ class DeviceBLE:
             data = read_file(filename)
             await self.client.write_gatt_char(
                 uuid,
-                f"START".encode('utf-8'),
+                f"START:{filename}".encode('utf-8'),
                 response=True
             )
             for i in range(0,len(data),CHUNK_SIZE):
                 chunk = data[i:i+CHUNK_SIZE]
                 await self.client.write_gatt_char(
                     uuid,
-                    chunk,response=False
+                    chunk,
+                    response=False
                 )
             await self.client.write_gatt_char(
                 uuid,
