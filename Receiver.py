@@ -127,7 +127,8 @@ class DeviceBLE:
                 chunk = data[i:i+CHUNK_SIZE]
                 await self.client.write_gatt_char(
                     uuid,
-                    chunk,response=False
+                    chunk,
+                    response=False
                 )
 
             await self.client.write_gatt_char(
