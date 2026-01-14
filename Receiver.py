@@ -1,5 +1,7 @@
 import asyncio
 import json
+from pathlib import Path
+
 import websockets
 
 from bleak import BleakScanner, BleakClient
@@ -111,13 +113,14 @@ class DeviceBLE:
 
     async def send_file(self, filename, uuid):
         if self.client and self.client.is_connected:
+            print("File transfer started")
             mtu_size = self.client.mtu_size
-            ATT_OVERHEAD = 3
+            ATT_OVERHEAD = 7
             CHUNK_SIZE = mtu_size - ATT_OVERHEAD
             data = read_file(filename)
             await self.client.write_gatt_char(
                 uuid,
-                f"START".encode('utf-8'),
+                f"START:{filename}".encode('utf-8'),
                 response=True
             )
             for i in range(0,len(data),CHUNK_SIZE):
@@ -126,6 +129,7 @@ class DeviceBLE:
                     uuid,
                     chunk,response=False
                 )
+
             await self.client.write_gatt_char(
                 uuid,
                 f"END".encode('utf-8'),
