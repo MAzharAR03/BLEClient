@@ -1,5 +1,9 @@
 import asyncio
+import json
+import time
+
 import crcmod.predefined as crc
+import vgamepad as vg
 import websockets
 
 from bleak import BleakScanner, BleakClient
@@ -53,6 +57,7 @@ class DeviceBLE:
         self.uuid_tilt_characteristic = TILT_CHAR_UUID
         self.uuid_step_characteristic = STEP_CHAR_UUID
         self.socketHandler = SocketHandler(self)
+        self.gamepad = vg.VX360Gamepad()
 
     latest_control_message = ""
     async def discover(self):
@@ -103,6 +108,26 @@ class DeviceBLE:
     def button_handler(self, sender, data):
         value = data.decode('utf-8')
         print(f"Notification from handle {sender}: {value}")
+        #self.gamepad.press_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_A)
+        #self.gamepad.update()
+        #time.sleep(0.5)
+        #self.gamepad.release_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_A)
+        #self.gamepad.update()
+        try:
+            state = json.loads(value)
+            buttons = state.get("buttons",[])
+            for button in buttons:
+                name = button["name"]
+                pressed = button["pressed"]
+                if name == "FIRE":
+                    if pressed:
+                        self.gamepad.press_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_A)
+                    else:
+                        self.gamepad.release_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_A)
+            self.gamepad.update()
+        except json.decoder.JSONDecodeError:
+            print(f"Failed to parse button value: {value}")
+
         self.socketHandler.addMessage(value)
 
     def control_handler(self,sender,data):
@@ -130,7 +155,7 @@ class DeviceBLE:
                 response=False
             )
 
-    #can probably clean this out somehow
+
     async def send_file(self, filename):
         if self.client and self.client.is_connected:
             print("File transfer started")
