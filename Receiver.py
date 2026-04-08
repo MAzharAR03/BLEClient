@@ -16,6 +16,7 @@ TILT_CHAR_UUID = "446be5b0-93b7-4911-abbe-e4e18d545640"
 STEP_CHAR_UUID = "36d942a6-9e79-4812-8a8f-84a275f6b176"
 FILE_TRANSFER_CHAR_UUID = "efcdbf7b-fee2-489b-8f79-b649aa50619b"
 CONTROL_MESSAGE_CHAR_UUID = "4a55006e-990a-4737-9634-133466ef8e35"
+MAX_PITCH = 1.57079633
 
 class SocketHandler:
     def __init__(self, ble_device):
@@ -108,22 +109,39 @@ class DeviceBLE:
     def button_handler(self, sender, data):
         value = data.decode('utf-8')
         print(f"Notification from handle {sender}: {value}")
-        #self.gamepad.press_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_A)
-        #self.gamepad.update()
-        #time.sleep(0.5)
-        #self.gamepad.release_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_A)
-        #self.gamepad.update()
+        BUTTON_MAP = {
+            "X": vg.XUSB_BUTTON.XUSB_GAMEPAD_X,
+            "Y": vg.XUSB_BUTTON.XUSB_GAMEPAD_Y,
+            "B": vg.XUSB_BUTTON.XUSB_GAMEPAD_B,
+            "A": vg.XUSB_BUTTON.XUSB_GAMEPAD_A,
+            "Up": vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_UP,
+            "Down": vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_DOWN,
+            "Left": vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_LEFT,
+            "Right": vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_RIGHT
+            # add more here
+        }
         try:
             state = json.loads(value)
+
+            pitch = state.get("pitch")
+            self.gamepad.right_joystick_float(x_value_float = -pitch/MAX_PITCH,y_value_float = 0 )
+
+            stepping = state.get("stepping")
+            if stepping:
+                self.gamepad.left_joystick_float(x_value_float=0.0, y_value_float=1.0)
+            else:
+                self.gamepad.left_joystick_float(x_value_float=0,y_value_float=0.0)
+
+
             buttons = state.get("buttons",[])
             for button in buttons:
-                name = button["name"]
-                pressed = button["pressed"]
-                if name == "FIRE":
-                    if pressed:
-                        self.gamepad.press_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_A)
+                xbox_button = BUTTON_MAP.get(button["name"])
+                if xbox_button:
+                    if button["pressed"]:
+                        self.gamepad.press_button(button=xbox_button)
                     else:
-                        self.gamepad.release_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_A)
+                        self.gamepad.release_button(button=xbox_button)
+
             self.gamepad.update()
         except json.decoder.JSONDecodeError:
             print(f"Failed to parse button value: {value}")
