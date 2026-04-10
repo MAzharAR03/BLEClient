@@ -118,7 +118,6 @@ class DeviceBLE:
             "Down": vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_DOWN,
             "Left": vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_LEFT,
             "Right": vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_RIGHT
-            # add more here
         }
         try:
             state = json.loads(value)
