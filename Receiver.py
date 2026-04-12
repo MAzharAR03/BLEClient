@@ -17,7 +17,7 @@ STEP_CHAR_UUID = "36d942a6-9e79-4812-8a8f-84a275f6b176"
 FILE_TRANSFER_CHAR_UUID = "efcdbf7b-fee2-489b-8f79-b649aa50619b"
 CONTROL_MESSAGE_CHAR_UUID = "4a55006e-990a-4737-9634-133466ef8e35"
 MAX_PITCH = 1.57079633
-
+EMULATION = false #Change this value to disable controller mapping/emulation. Only for Debugging purposes
 class SocketHandler:
     def __init__(self, ble_device):
         self.url = "localhost"
@@ -119,33 +119,35 @@ class DeviceBLE:
             "Left": vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_LEFT,
             "Right": vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_RIGHT
         }
-        try:
-            state = json.loads(value)
-
-            pitch = state.get("pitch")
-            self.gamepad.right_joystick_float(x_value_float = -pitch/MAX_PITCH,y_value_float = 0 )
-
-            stepping = state.get("stepping")
-            if stepping:
-                self.gamepad.left_joystick_float(x_value_float=0.0, y_value_float=1.0)
-            else:
-                self.gamepad.left_joystick_float(x_value_float=0,y_value_float=0.0)
-
-
-            buttons = state.get("buttons",[])
-            for button in buttons:
-                xbox_button = BUTTON_MAP.get(button["name"])
-                if xbox_button:
-                    if button["pressed"]:
-                        self.gamepad.press_button(button=xbox_button)
-                    else:
-                        self.gamepad.release_button(button=xbox_button)
-
-            self.gamepad.update()
-        except json.decoder.JSONDecodeError:
-            print(f"Failed to parse button value: {value}")
-
         self.socketHandler.addMessage(value)
+        if(EMULATION):
+            try:
+                state = json.loads(value)
+
+                pitch = state.get("pitch")
+                self.gamepad.right_joystick_float(x_value_float = -pitch/MAX_PITCH,y_value_float = 0 )
+
+                stepping = state.get("stepping")
+                if stepping:
+                    self.gamepad.left_joystick_float(x_value_float=0.0, y_value_float=1.0)
+                else:
+                    self.gamepad.left_joystick_float(x_value_float=0,y_value_float=0.0)
+
+
+                buttons = state.get("buttons",[])
+                for button in buttons:
+                    xbox_button = BUTTON_MAP.get(button["name"])
+                    if xbox_button:
+                        if button["pressed"]:
+                            self.gamepad.press_button(button=xbox_button)
+                        else:
+                            self.gamepad.release_button(button=xbox_button)
+
+                self.gamepad.update()
+            except json.decoder.JSONDecodeError:
+                print(f"Failed to parse button value: {value}")
+
+
 
     def control_handler(self,sender,data):
         message = data.decode('utf-8')
