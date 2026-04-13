@@ -1,6 +1,5 @@
 import asyncio
 import json
-import time
 
 import crcmod.predefined as crc
 import vgamepad as vg
@@ -9,6 +8,7 @@ import websockets
 from bleak import BleakScanner, BleakClient
 
 from ReadFile import read_file
+from Mapper import apply_control
 
 BUTTON_SERVICE_UUID = "0000feed-0000-1000-8000-00805f9b34fb"
 BUTTON_CHAR_UUID = "0000beef-0000-1000-8000-00805f9b34fb"
@@ -17,7 +17,7 @@ STEP_CHAR_UUID = "36d942a6-9e79-4812-8a8f-84a275f6b176"
 FILE_TRANSFER_CHAR_UUID = "efcdbf7b-fee2-489b-8f79-b649aa50619b"
 CONTROL_MESSAGE_CHAR_UUID = "4a55006e-990a-4737-9634-133466ef8e35"
 MAX_PITCH = 1.57079633
-EMULATION = false #Change this value to disable controller mapping/emulation. Only for Debugging purposes
+EMULATION = True #Change this value to disable controller mapping/emulation. Only for Debugging purposes
 class SocketHandler:
     def __init__(self, ble_device):
         self.url = "localhost"
@@ -59,6 +59,7 @@ class DeviceBLE:
         self.uuid_step_characteristic = STEP_CHAR_UUID
         self.socketHandler = SocketHandler(self)
         self.gamepad = vg.VX360Gamepad()
+        self.mapping = json.loads(read_file("config.json"))
 
     latest_control_message = ""
     async def discover(self):
@@ -87,7 +88,8 @@ class DeviceBLE:
 
     async def disconnect(self):
         try:
-            await self.client.disconnect()
+            if self.client is not None:
+                await self.client.disconnect()
         except:
             raise Exception("Failed to disconnect")
 
@@ -106,46 +108,64 @@ class DeviceBLE:
             else:
                 print(f"Error, characteristic {self.uuid_button_characteristic} not found in discovered services.")
 
+    def resolve_input(self, mapping, inputs):
+        if mapping is None:
+            return None
+
+        raw = inputs.get(mapping["input"])
+        if raw is None:
+            return None
+
+        if mapping["input"].startswith("toggle:"):
+            return mapping.get("value",1.0) if raw else 0.0
+        else:
+            return float(raw)
+
+
     def button_handler(self, sender, data):
         value = data.decode('utf-8')
-        print(f"Notification from handle {sender}: {value}")
-        BUTTON_MAP = {
-            "X": vg.XUSB_BUTTON.XUSB_GAMEPAD_X,
-            "Y": vg.XUSB_BUTTON.XUSB_GAMEPAD_Y,
-            "B": vg.XUSB_BUTTON.XUSB_GAMEPAD_B,
-            "A": vg.XUSB_BUTTON.XUSB_GAMEPAD_A,
-            "Up": vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_UP,
-            "Down": vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_DOWN,
-            "Left": vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_LEFT,
-            "Right": vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_RIGHT
-        }
         self.socketHandler.addMessage(value)
-        if(EMULATION):
-            try:
-                state = json.loads(value)
+        print(f"Notification from handle {sender}: {value}")
+        if not EMULATION:
+            return
 
-                pitch = state.get("pitch")
-                self.gamepad.right_joystick_float(x_value_float = -pitch/MAX_PITCH,y_value_float = 0 )
+        try:
+            state = json.loads(value)
+        except json.decoder.JSONDecodeError:
+            print(f"Failed to parse button value: {value}")
+            return
+        #Make a flat dictionary for easy lookup, State dictionary has buttons in an array
+        inputs = {}
+        for button in state.get("buttons", []):
+            inputs[f"toggle:{button['name']}"] = button["pressed"]
+        inputs["toggle:stepping"] = True if state.get("stepping") else False
+        inputs["float:pitch"] = state.get("pitch",0.0)
 
-                stepping = state.get("stepping")
-                if stepping:
-                    self.gamepad.left_joystick_float(x_value_float=0.0, y_value_float=1.0)
-                else:
-                    self.gamepad.left_joystick_float(x_value_float=0,y_value_float=0.0)
+        for side in ("left","right"):
+            joystick_cfg = self.mapping.get(f"{side}_joystick")
+            if not joystick_cfg:
+                continue
+            x = self.resolve_input(joystick_cfg.get("x"), inputs) or 0.0
+            y = self.resolve_input(joystick_cfg.get("y"), inputs) or 0.0
+            apply_control(self.gamepad, f"{side}_joystick", x=x, y=y)
 
 
-                buttons = state.get("buttons",[])
-                for button in buttons:
-                    xbox_button = BUTTON_MAP.get(button["name"])
-                    if xbox_button:
-                        if button["pressed"]:
-                            self.gamepad.press_button(button=xbox_button)
-                        else:
-                            self.gamepad.release_button(button=xbox_button)
+        for side in ("left", "right"):
+            trigger_cfg = self.mapping.get(f"{side}_trigger")
+            if not trigger_cfg:
+                continue
+            value = self.resolve_input(trigger_cfg,inputs) or 0.0
+            apply_control(self.gamepad,f"{side}_trigger", value = value)
 
-                self.gamepad.update()
-            except json.decoder.JSONDecodeError:
-                print(f"Failed to parse button value: {value}")
+        for action_name, button_cfg in self.mapping.items():
+            if action_name.endswith("_joystick") or action_name.endswith("_trigger"):
+                continue
+            if not button_cfg:
+                continue
+            raw = inputs.get(button_cfg["input"])
+            if raw is not None:
+                apply_control(self.gamepad, action_name, pressed=bool(raw))
+
 
 
 

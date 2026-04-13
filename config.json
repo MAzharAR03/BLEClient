@@ -1,0 +1,26 @@
+{
+    "left_joystick": {
+        "x": null,
+        "y": null
+    },
+    "right_joystick": {
+        "x": {
+          "input": "float:pitch"
+        },
+        "y": null
+    },
+    "left_trigger": {"input": "toggle:stepping"},
+    "right_trigger": null,
+    "A": {"input": "toggle:FIRE"},
+    "B": null,
+    "X": null,
+    "Y": null,
+    "dpad_up": null,
+    "dpad_down": null,
+    "dpad_left": null,
+    "dpad_right": null,
+    "left_shoulder": null,
+    "right_shoulder": null,
+    "start": null,
+    "back": null
+}
