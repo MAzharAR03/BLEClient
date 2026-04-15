@@ -60,6 +60,8 @@ class DeviceBLE:
         self.socketHandler = SocketHandler(self)
         self.gamepad = vg.VX360Gamepad()
         self.mapping = json.loads(read_file("config.json"))
+        self.buffer = []
+        self.expecting_chunks = 0
 
     latest_control_message = ""
     async def discover(self):
@@ -99,9 +101,7 @@ class DeviceBLE:
             characteristic = self.client.services.get_characteristic(self.uuid_button_characteristic)
             if characteristic:
                 print(f"Characteristic found: {characteristic.uuid}")
-                await self.client.start_notify(self.uuid_button_characteristic, self.button_handler)
-                await self.client.start_notify(TILT_CHAR_UUID, self.button_handler)
-                await self.client.start_notify(STEP_CHAR_UUID, self.button_handler)
+                await self.client.start_notify(self.uuid_button_characteristic, self.input_handler)
 
                 await self.client.start_notify(CONTROL_MESSAGE_CHAR_UUID, self.control_handler)
                 print(f"Subscribed to notifications")
@@ -119,13 +119,30 @@ class DeviceBLE:
         if mapping["input"].startswith("toggle:"):
             return mapping.get("value",1.0) if raw else 0.0
         else:
-            return float(raw)
+            scale = mapping.get("scale", 1.0)
+            return -float(raw) / scale
 
-
-    def button_handler(self, sender, data):
+    def input_handler(self, sender, data):
         value = data.decode('utf-8')
+
+        if value.startswith("START:"):
+            parts = value.split(":",2)
+            self.expecting_chunks = int(parts[1])
+            self.buffer = [parts[2]]
+            return
+        elif value.startswith("CHUNK:"):
+            parts = value.split(":",2)
+            self.buffer.append(parts[2])
+            return
+        elif value.startswith("END:"):
+            self.buffer.append(value[4:])
+            value = "".join(self.buffer)
+            self.buffer = []
+            self.expecting_chunks = 0
+
         self.socketHandler.addMessage(value)
-        print(f"Notification from handle {sender}: {value}")
+
+        #print(f"Notification from handle {sender}: {value}")
         if not EMULATION:
             return
 
@@ -141,6 +158,8 @@ class DeviceBLE:
         inputs["toggle:stepping"] = True if state.get("stepping") else False
         inputs["float:pitch"] = state.get("pitch",0.0)
 
+        #Search for left and right joysticks in mapping configuration
+        #Get value of x and y through user-defined or from sensor data
         for side in ("left","right"):
             joystick_cfg = self.mapping.get(f"{side}_joystick")
             if not joystick_cfg:
@@ -149,7 +168,8 @@ class DeviceBLE:
             y = self.resolve_input(joystick_cfg.get("y"), inputs) or 0.0
             apply_control(self.gamepad, f"{side}_joystick", x=x, y=y)
 
-
+        #Search for left and right trigger joysticks in mapping configuration
+        #Get value of press through user-defined value.
         for side in ("left", "right"):
             trigger_cfg = self.mapping.get(f"{side}_trigger")
             if not trigger_cfg:
@@ -157,6 +177,7 @@ class DeviceBLE:
             value = self.resolve_input(trigger_cfg,inputs) or 0.0
             apply_control(self.gamepad,f"{side}_trigger", value = value)
 
+        #Remaining buttons, get button state and apply gamepad control
         for action_name, button_cfg in self.mapping.items():
             if action_name.endswith("_joystick") or action_name.endswith("_trigger"):
                 continue
@@ -165,9 +186,9 @@ class DeviceBLE:
             raw = inputs.get(button_cfg["input"])
             if raw is not None:
                 apply_control(self.gamepad, action_name, pressed=bool(raw))
+        self.gamepad.update()
 
-
-
+    
 
     def control_handler(self,sender,data):
         message = data.decode('utf-8')

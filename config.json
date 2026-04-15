@@ -1,24 +1,24 @@
 {
     "left_joystick": {
         "x": null,
-        "y": null
+        "y": {"input": "toggle:stepping"}
     },
     "right_joystick": {
         "x": {
-          "input": "float:pitch"
+          "input": "float:pitch" , "scale": 1.57079633
         },
         "y": null
     },
-    "left_trigger": {"input": "toggle:stepping"},
+    "left_trigger": null,
     "right_trigger": null,
-    "A": {"input": "toggle:FIRE"},
-    "B": null,
-    "X": null,
-    "Y": null,
-    "dpad_up": null,
-    "dpad_down": null,
-    "dpad_left": null,
-    "dpad_right": null,
+    "A": {"input": "toggle:A"},
+    "B": {"input": "toggle:B"},
+    "X": {"input": "toggle:X"},
+    "Y": {"input": "toggle:Y"},
+    "dpad_up": {"input": "toggle:Up"},
+    "dpad_down": {"input": "toggle:Down"},
+    "dpad_left": {"input": "toggle:Left"},
+    "dpad_right": {"input": "toggle:Right"},
     "left_shoulder": null,
     "right_shoulder": null,
     "start": null,
