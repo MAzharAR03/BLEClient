@@ -142,7 +142,7 @@ class DeviceBLE:
 
         self.socketHandler.addMessage(value)
 
-        #print(f"Notification from handle {sender}: {value}")
+        print(f"Notification from handle {sender}: {value}")
         if not EMULATION:
             return
 
