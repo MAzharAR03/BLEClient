@@ -278,6 +278,7 @@ async def main():
         await device.connect()
         await device.notify()
         #await device.send_file("dog.6126.jpg")
+        await device.send_file("Xbox controller.json")
         while True:
             await asyncio.sleep(1)
 

@@ -13,17 +13,6 @@ DOCK_WIDTH = 200
 ASPECT_RATIO = 20/9
 TOOLBAR_HEIGHT = 50
 
-# class AndroidView(QGraphicsView):
-#     def __init__(self, scene, parent=None):
-#         super().__init__(scene, parent)
-#         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-#         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-#         self.setRenderHint(self.renderHints().Antialiasing)
-#
-#     def resizeEvent(self, event):
-#         super().resizeEvent(event)
-#         self.fitInView(self.scene().sceneRect(),Qt.AspectRatioMode.KeepAspectRatio)
-
 class ViewContainer(QWidget):
     def __init__(self, view, parent = None):
         super().__init__(parent)
