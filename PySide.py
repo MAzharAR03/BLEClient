@@ -6,6 +6,7 @@ from PySide6.QtGui import QBrush, QPen, QPolygonF, QPixmap, QPainter, QFont
 from PySide6.QtWidgets import QGraphicsScene, QGraphicsView, QApplication, QGraphicsRectItem, QGraphicsItem, \
     QMainWindow, QToolBar, QDockWidget, QWidget, QVBoxLayout, QLabel, QGroupBox, QSpinBox, QFormLayout, QComboBox, \
     QLineEdit, QFileDialog
+from shiboken6.Shiboken import delete
 
 SCENE_WIDTH = 1616
 SCENE_HEIGHT = 720
@@ -168,7 +169,9 @@ class PropertiesSidebar(QWidget):
             "Up",
             "Down",
             "Left",
-            "Right"
+            "Right",
+            "Left Analog",
+            "Right Analog"
         ])
         xbox_form.addRow("Xbox Button", self.xbox_combo)
         xbox_group.setLayout(xbox_form)
@@ -242,6 +245,8 @@ class LayoutBuilder(QMainWindow):
 
         add_button_action = self.toolbar.addAction("Add Button")
         add_button_action.triggered.connect(self.create_new_button)
+        delete_action = self.toolbar.addAction("Delete Button")
+        delete_action.triggered.connect(self.delete_selected)
 
         self.dock = QDockWidget("Properties", self)
         self.dock.setAllowedAreas(Qt.DockWidgetArea.RightDockWidgetArea)
@@ -265,6 +270,10 @@ class LayoutBuilder(QMainWindow):
         btn = CustomButton(x, y, width, height, shape = CustomButton.CIRCLE)
         btn.on_moved = lambda: self.sidebar.populate(btn)
         self.scene.addItem(btn)
+
+    def delete_selected(self):
+        for item in self.scene.selectedItems():
+            self.scene.removeItem(item)
 
     def on_selection_changed(self):
         selected = self.scene.selectedItems()

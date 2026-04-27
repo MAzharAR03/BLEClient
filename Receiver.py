@@ -193,9 +193,9 @@ class DeviceBLE:
             if not button_cfg:
                 continue
             if isinstance(button_cfg, list):
-                pressed = any(inputs.get(cfg if isinstance(cfg, str) else cfg["input"]) for cfg in button_cfg)
+                pressed = any(inputs.get(cfg["input"]) for cfg in button_cfg)
             else:
-                input_key = button_cfg if isinstance(button_cfg, str) else button_cfg["input"]
+                input_key = button_cfg["input"]
                 pressed = bool(inputs.get(input_key))
             if pressed is not None:
                 apply_control(self.gamepad, action_name, pressed=bool(pressed))
