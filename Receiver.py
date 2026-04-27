@@ -108,7 +108,12 @@ class DeviceBLE:
             else:
                 print(f"Error, characteristic {self.uuid_button_characteristic} not found in discovered services.")
 
+
+
     def resolve_input(self, mapping, inputs):
+        if isinstance(mapping, list):
+            return sum(self.resolve_input(m, inputs) or 0.0 for m in mapping) # loop through all inputs in the mapped action and sum up
+
         if mapping is None:
             return None
 
@@ -151,7 +156,11 @@ class DeviceBLE:
         except json.decoder.JSONDecodeError:
             print(f"Failed to parse button value: {value}")
             return
-        #Make a flat dictionary for easy lookup, State dictionary has buttons in an array
+
+        self.gamepad_handler(state)
+
+    def gamepad_handler(self, state):
+        #Make a flat dictionary for easy lookup, State dictionary has buttons in an array, looping through an array every time is inefficient
         inputs = {}
         for button in state.get("buttons", []):
             inputs[f"toggle:{button['name']}"] = button["pressed"]
@@ -183,9 +192,13 @@ class DeviceBLE:
                 continue
             if not button_cfg:
                 continue
-            raw = inputs.get(button_cfg["input"])
-            if raw is not None:
-                apply_control(self.gamepad, action_name, pressed=bool(raw))
+            if isinstance(button_cfg, list):
+                pressed = any(inputs.get(cfg if isinstance(cfg, str) else cfg["input"]) for cfg in button_cfg)
+            else:
+                input_key = button_cfg if isinstance(button_cfg, str) else button_cfg["input"]
+                pressed = bool(inputs.get(input_key))
+            if pressed is not None:
+                apply_control(self.gamepad, action_name, pressed=bool(pressed))
         self.gamepad.update()
 
     
@@ -277,8 +290,7 @@ async def main():
         asyncio.create_task(runServer())
         await device.connect()
         await device.notify()
-        #await device.send_file("dog.6126.jpg")
-        await device.send_file("Xbox controller.json")
+        await device.send_file("test.json")
         while True:
             await asyncio.sleep(1)
 
