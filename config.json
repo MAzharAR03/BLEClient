@@ -16,11 +16,11 @@
     "X": {"input": "toggle:X"},
     "Y": {"input": "toggle:stepping"},
     "dpad_up": {"input": "toggle:Up"},
-    "dpad_down": {"input": "toggle:Down"},
+    "dpad_down": null,
     "dpad_left": {"input": "toggle:Left"},
     "dpad_right": {"input": "toggle:Right"},
     "left_shoulder": null,
     "right_shoulder": null,
     "start": null,
-    "back": null
+    "back": {"input": "toggle:Down"}
 }
