@@ -16,17 +16,19 @@ class DeviceBLE:
         self.device = None
         self.uuid_input_service = INPUT_SERVICE_UUID
         self.uuid_input_characteristic = INPUT_CHAR_UUID
-        # self.socketHandler = SocketHandler(self)
+        self.socketHandler = SocketHandler(self)
         self.gamepadManager = GamepadManager()
         self.buffer = []
         self.expecting_chunks = 0
         self.latest_control_message = None
         self.address = None
+        self.loop = None
 
 
 
 
     async def connect(self):
+        self.loop = asyncio.get_event_loop()
         if self.address is not None:
             try:
                 print(f"Found device at address:{self.address}")
@@ -77,7 +79,7 @@ class DeviceBLE:
             self.buffer = []
             self.expecting_chunks = 0
 
-        # self.socketHandler.addMessage(value)
+        self.socketHandler.addMessage(value)
 
         #print(f"Notification from handle {sender}: {value}")
         if EMULATION:

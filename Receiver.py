@@ -1,4 +1,5 @@
 import asyncio
+
 import websockets
 from bleak import BleakScanner
 
@@ -30,23 +31,24 @@ async def main():
 
 
     async def run_device(device):
-        # async def runServer():
-        #         async with websockets.serve(
-        #                 device.socketHandler.handle_websocket,
-        #                 device.socketHandler.url,
-        #                 device.socketHandler.port
-        #         ):
-        #             await asyncio.Future()
-        #
-        # asyncio.create_task(runServer())
+        async def runServer():
+                async with websockets.serve(
+                        device.socketHandler.handle_websocket,
+                        device.socketHandler.url,
+                        device.socketHandler.port
+                ):
+                    await asyncio.Future()
+
+        asyncio.create_task(runServer())
         await device.connect()
         await device.notify()
-        
+
         #await device.send_file("Xbox controller.json")
 
 
     try:
-        await asyncio.gather(*[run_device(d) for d in connectedDevices])
+        for d in connectedDevices:
+            await run_device(d)
         while True:
             await asyncio.sleep(1)
     except KeyboardInterrupt:
