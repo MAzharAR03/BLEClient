@@ -7,6 +7,7 @@ import websockets
 
 from bleak import BleakScanner, BleakClient
 
+from GamepadManager import GamepadManager
 from ReadFile import read_file
 from Mapper import apply_control
 
@@ -58,8 +59,7 @@ class DeviceBLE:
         self.uuid_tilt_characteristic = TILT_CHAR_UUID
         self.uuid_step_characteristic = STEP_CHAR_UUID
         self.socketHandler = SocketHandler(self)
-        self.gamepad = vg.VX360Gamepad()
-        self.mapping = json.loads(read_file("config.json"))
+        self.gamepadManager = GamepadManager()
         self.buffer = []
         self.expecting_chunks = 0
 
@@ -108,25 +108,6 @@ class DeviceBLE:
             else:
                 print(f"Error, characteristic {self.uuid_button_characteristic} not found in discovered services.")
 
-
-
-    def resolve_input(self, mapping, inputs):
-        if isinstance(mapping, list):
-            return sum(self.resolve_input(m, inputs) or 0.0 for m in mapping) # loop through all inputs in the mapped action and sum up
-
-        if mapping is None:
-            return None
-
-        raw = inputs.get(mapping["input"])
-        if raw is None:
-            return None
-
-        if mapping["input"].startswith("toggle:"):
-            return mapping.get("value",1.0) if raw else 0.0
-        else:
-            scale = mapping.get("scale", 1.0)
-            return -float(raw) / scale
-
     def input_handler(self, sender, data):
         value = data.decode('utf-8')
 
@@ -148,60 +129,8 @@ class DeviceBLE:
         self.socketHandler.addMessage(value)
 
         print(f"Notification from handle {sender}: {value}")
-        if not EMULATION:
-            return
-
-        try:
-            state = json.loads(value)
-        except json.decoder.JSONDecodeError:
-            print(f"Failed to parse button value: {value}")
-            return
-
-        self.gamepad_handler(state)
-
-    def gamepad_handler(self, state):
-        #Make a flat dictionary for easy lookup, State dictionary has buttons in an array, looping through an array every time is inefficient
-        inputs = {}
-        for button in state.get("buttons", []):
-            inputs[f"toggle:{button['name']}"] = button["pressed"]
-        inputs["toggle:stepping"] = True if state.get("stepping") else False
-        inputs["float:pitch"] = state.get("pitch",0.0)
-
-        #Search for left and right joysticks in mapping configuration
-        #Get value of x and y through user-defined or from sensor data
-        for side in ("left","right"):
-            joystick_cfg = self.mapping.get(f"{side}_joystick")
-            if not joystick_cfg:
-                continue
-            x = self.resolve_input(joystick_cfg.get("x"), inputs) or 0.0
-            y = self.resolve_input(joystick_cfg.get("y"), inputs) or 0.0
-            apply_control(self.gamepad, f"{side}_joystick", x=x, y=y)
-
-        #Search for left and right trigger joysticks in mapping configuration
-        #Get value of press through user-defined value.
-        for side in ("left", "right"):
-            trigger_cfg = self.mapping.get(f"{side}_trigger")
-            if not trigger_cfg:
-                continue
-            value = self.resolve_input(trigger_cfg,inputs) or 0.0
-            apply_control(self.gamepad,f"{side}_trigger", value = value)
-
-        #Remaining buttons, get button state and apply gamepad control
-        for action_name, button_cfg in self.mapping.items():
-            if action_name.endswith("_joystick") or action_name.endswith("_trigger"):
-                continue
-            if not button_cfg:
-                continue
-            if isinstance(button_cfg, list):
-                pressed = any(inputs.get(cfg["input"]) for cfg in button_cfg)
-            else:
-                input_key = button_cfg["input"]
-                pressed = bool(inputs.get(input_key))
-            if pressed is not None:
-                apply_control(self.gamepad, action_name, pressed=bool(pressed))
-        self.gamepad.update()
-
-    
+        if EMULATION:
+            self.gamepadManager.update_state(value)
 
     def control_handler(self,sender,data):
         message = data.decode('utf-8')
@@ -290,7 +219,7 @@ async def main():
         asyncio.create_task(runServer())
         await device.connect()
         await device.notify()
-        await device.send_file("test.json")
+        await device.send_file("Xbox controller.json")
         while True:
             await asyncio.sleep(1)
 

@@ -2,11 +2,10 @@ import json
 import sys
 
 from PySide6.QtCore import Qt, QPointF, QRectF
-from PySide6.QtGui import QBrush, QPen, QPolygonF, QPixmap, QPainter, QFont
+from PySide6.QtGui import QBrush, QPen, QPolygonF, QPixmap, QPainter, QFont, QColor
 from PySide6.QtWidgets import QGraphicsScene, QGraphicsView, QApplication, QGraphicsRectItem, QGraphicsItem, \
     QMainWindow, QToolBar, QDockWidget, QWidget, QVBoxLayout, QLabel, QGroupBox, QSpinBox, QFormLayout, QComboBox, \
-    QLineEdit, QFileDialog
-from shiboken6.Shiboken import delete
+    QLineEdit, QFileDialog, QPushButton, QColorDialog
 
 SCENE_WIDTH = 1616
 SCENE_HEIGHT = 720
@@ -52,7 +51,7 @@ class CustomButton(QGraphicsItem):
         self.button_h = height
         self.button_shape = shape
         self.rounding = rounding
-        self.color = color
+        self.color = QColor(color) if isinstance(color, str) else color
         self.text = "Button"
         self.font_size = 14
         self.setFlags(
@@ -141,6 +140,25 @@ class PropertiesSidebar(QWidget):
         shape_form.addRow("Radius", self.radius_spin)
         shape_group.setLayout(shape_form)
 
+        color_group = QGroupBox("Color")
+        color_form = QFormLayout()
+
+        self.color_input = QLineEdit("#000000")
+        self.color_preview = QWidget()
+        self.color_preview.setFixedSize(24,24)
+
+        self.color_input.textChanged.connect(self.on_color_changed)
+
+        self.color_pick_btn = QPushButton("Pick Color")
+        self.color_pick_btn.clicked.connect(self.open_color_picker)
+
+        color_form.addRow("Hex", self.color_input)
+        color_form.addRow("Preview", self.color_preview)
+        color_form.addRow("Picker", self.color_pick_btn)
+
+        color_group.setLayout(color_form)
+        layout.addWidget(color_group)
+
         label_group = QGroupBox("Label")
         label_form = QFormLayout()
         self.text_input = QLineEdit()
@@ -208,11 +226,22 @@ class PropertiesSidebar(QWidget):
             }[button.button_shape]
         )
         self.radius_spin.setValue(button.rounding)
+        self.color_input.setText(QColor(button.color).name())
         self.text_input.setText(button.text)
         self.font_size_spin.setValue(button.font_size)
         self.xbox_combo.setCurrentText(button.xbox_button)
         self._updating = False
 
+    def open_color_picker(self):
+        current = QColor(self.color_input.text())
+        color = QColorDialog.getColor(current, self, "Pick a Color")
+        if color.isValid():
+            self.color_input.setText(color.name())
+
+    def on_color_changed(self, text):
+        if QColor(text).isValid():
+            self.color_preview.setStyleSheet(f"background-color: {text};")
+            self.on_property_changed()
 
     def on_property_changed(self):
         if self._updating:
@@ -296,6 +325,10 @@ class LayoutBuilder(QMainWindow):
             "Circle": CustomButton.CIRCLE
         }[self.sidebar.shape_combo.currentText()]
         btn.rounding = self.sidebar.radius_spin.value()
+        color = QColor(self.sidebar.color_input.text())
+        if color.isValid():
+            btn.color = color
+            btn.update()
         btn.text = self.sidebar.text_input.text()
         btn.font_size = self.sidebar.font_size_spin.value()
         btn.xbox_button = self.sidebar.xbox_combo.currentText()
