@@ -1,0 +1,62 @@
+{
+  "background image": "",
+  "buttons": [
+    {
+      "text": "Item",
+      "textColor": "#000000",
+      "textFontSize": 14,
+      "width": 0.12376237623762376,
+      "height": 0.2777777777777778,
+      "xOffset": 0.724009900990099,
+      "yOffset": 0.31527777777777777,
+      "shape": "circle",
+      "color": "#eaff00",
+      "imageURL": "",
+      "rounding": 10,
+      "padding": 0
+    },
+    {
+      "text": "Look Behind",
+      "textColor": "#ffffff",
+      "textFontSize": 14,
+      "width": 0.12376237623762376,
+      "height": 0.2777777777777778,
+      "xOffset": 0.18502475247524752,
+      "yOffset": 0.5888888888888889,
+      "shape": "circle",
+      "color": "#ff40d6",
+      "imageURL": "",
+      "rounding": 10,
+      "padding": 0
+    },
+    {
+      "text": "Boost",
+      "textColor": "#ffffff",
+      "textFontSize": 14,
+      "width": 0.12376237623762376,
+      "height": 0.2777777777777778,
+      "xOffset": 0.20111386138613863,
+      "yOffset": 0.041666666666666664,
+      "shape": "circle",
+      "color": "#0090ff",
+      "imageURL": "",
+      "rounding": 10,
+      "padding": 0
+    },
+    {
+      "text": "Reverse",
+      "textColor": "#ffffff",
+      "textFontSize": 14,
+      "width": 0.18564356435643564,
+      "height": 0.4166666666666667,
+      "xOffset": 0.42698019801980197,
+      "yOffset": 0.25,
+      "shape": "circle",
+      "color": "#ff0004",
+      "imageURL": "",
+      "rounding": 10,
+      "padding": 0
+    }
+  ],
+  "images": []
+}

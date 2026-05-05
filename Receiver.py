@@ -43,7 +43,7 @@ async def main():
         await device.connect()
         await device.notify()
 
-        #await device.send_file("Xbox controller.json")
+        await device.send_file("SuperTuxKart.json")
 
 
     try:

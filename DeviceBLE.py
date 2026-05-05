@@ -81,7 +81,7 @@ class DeviceBLE:
 
         self.socketHandler.addMessage(value)
 
-        #print(f"Notification from handle {sender}: {value}")
+        print(f"Notification from handle {sender}: {value}")
         if EMULATION:
             self.gamepadManager.update_state(value)
 
@@ -90,7 +90,6 @@ class DeviceBLE:
         self.latest_control_message = message
 
     async def wait_for_response(self, timeout=5):
-        self.latest_control_message = None
         attempts = 0
         while attempts < 3:
             start = asyncio.get_event_loop().time()

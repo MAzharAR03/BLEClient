@@ -282,7 +282,8 @@ class LayoutBuilder(QMainWindow):
         save_action = self.toolbar.addAction("Save Layout")
         save_action.triggered.connect(self.save_layout)
 
-        self.toolbar.addAction("Load Layout")
+        load_action = self.toolbar.addAction("Load Layout")
+        load_action.triggered.connect(self.load_layout)
         self.toolbar.addSeparator()
         self.toolbar.setFixedHeight(TOOLBAR_HEIGHT)
 
@@ -381,6 +382,36 @@ class LayoutBuilder(QMainWindow):
         if path:
             with open(path, "w") as file:
                 json.dump(data, file, indent=2)
+
+    def load_layout(self):
+        path, _ = QFileDialog.getOpenFileName(self, "Load Layout", "", "JSON files (*.json)")
+        if not path:
+            return
+
+        with open(path, "r") as file:
+            data = json.load(file)
+
+        self.scene.clear()
+
+        shape_map = {
+            "rect": CustomButton.RECT,
+            "rounded_rect": CustomButton.ROUNDED_RECT,
+            "circle": CustomButton.CIRCLE,
+        }
+
+        for button in data.get("buttons", []):
+            x = button["xOffset"] * SCENE_WIDTH
+            y = button["yOffset"] * SCENE_HEIGHT
+            w = button["width"] * SCENE_WIDTH
+            h = button["height"] * SCENE_HEIGHT
+            shape = shape_map.get(button.get("shape","rounded_rect"), CustomButton.ROUNDED_RECT)
+
+            btn = CustomButton(x, y, w, h, shape = shape, rounding = button.get("rounding", 10), color = button.get("color", "#000000"))
+            btn.text = button.get("text", "")
+            btn.font_color = QColor(button.get("textColor","#ffffff"))
+            btn.font_size = int(button.get("textFontSize", 14))
+            btn.on_moved = lambda: self.sidebar.populate(btn)
+            self.scene.addItem(btn)
 
 app = QApplication(sys.argv)
 window = LayoutBuilder()
