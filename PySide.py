@@ -6,7 +6,7 @@ from PySide6.QtGui import QBrush, QPen, QPolygonF, QPixmap, QPainter, QFont, QCo
 from PySide6.QtWidgets import QGraphicsScene, QGraphicsView, QApplication, QGraphicsRectItem, QGraphicsItem, \
     QMainWindow, QToolBar, QDockWidget, QWidget, QVBoxLayout, QLabel, QGroupBox, QSpinBox, QFormLayout, QComboBox, \
     QLineEdit, QFileDialog, QPushButton, QColorDialog
-
+from ResizeHandle import ResizeHandle
 SCENE_WIDTH = 1616
 SCENE_HEIGHT = 720
 DOCK_WIDTH = 200
@@ -62,6 +62,11 @@ class CustomButton(QGraphicsItem):
         )
         self.xbox_button = "None"
         self.on_moved = None
+        self.handles = []
+        for corner in ("tl","tr","bl","br"):
+            h = ResizeHandle(corner,self)
+            h.setVisible(False)
+            self.handles.append(h)
 
     def boundingRect(self):
         return QRectF(0, 0, self.button_w, self.button_h)
@@ -88,6 +93,9 @@ class CustomButton(QGraphicsItem):
             painter.drawRect(0,0, self.button_w, self.button_h)
 
     def itemChange(self, change, value):
+        if change == QGraphicsItem.GraphicsItemChange.ItemSelectedChange:
+            for handle in self.handles:
+                handle.setVisible(bool(value))
         if change == QGraphicsItem.GraphicsItemChange.ItemPositionChange:
             scene_rect = self.scene().sceneRect()
             clamped_x = max(scene_rect.left(), min(value.x(), scene_rect.right() - self.button_w))
@@ -351,6 +359,8 @@ class LayoutBuilder(QMainWindow):
         btn.font_size = self.sidebar.font_size_spin.value()
         btn.xbox_button = self.sidebar.xbox_combo.currentText()
 
+        for handle in btn.handles:
+            handle.update_position()
         btn.update()
 
     def save_layout(self):
