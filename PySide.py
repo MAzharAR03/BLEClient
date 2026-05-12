@@ -6,7 +6,7 @@ from PySide6.QtGui import QBrush, QPen, QPolygonF, QPixmap, QPainter, QFont, QCo
 from PySide6.QtWidgets import QGraphicsScene, QGraphicsView, QApplication, QGraphicsRectItem, QGraphicsItem, \
     QMainWindow, QToolBar, QDockWidget, QWidget, QVBoxLayout, QLabel, QGroupBox, QSpinBox, QFormLayout, QComboBox, \
     QLineEdit, QFileDialog, QPushButton, QColorDialog
-from ResizeHandle import ResizeHandle
+from CustomButton import CustomButton
 SCENE_WIDTH = 1616
 SCENE_HEIGHT = 720
 DOCK_WIDTH = 200
@@ -39,75 +39,7 @@ class ViewContainer(QWidget):
     #     self.view.fitInView(self.view.scene().sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
 
 
-class CustomButton(QGraphicsItem):
-    RECT = "rect"
-    ROUNDED_RECT = "rounded_rect"
-    CIRCLE = "circle"
 
-    def __init__(self, x, y, width, height,shape = ROUNDED_RECT, parent=None, rounding = 10, color="#000000"):
-        super().__init__(parent)
-        self.setPos(x, y)
-        self.button_w = width
-        self.button_h = height
-        self.button_shape = shape
-        self.rounding = rounding
-        self.color = QColor(color) if isinstance(color, str) else color
-        self.text = "Button"
-        self.font_color = QColor("#ffffff")
-        self.font_size = 14
-        self.setFlags(
-            QGraphicsItem.GraphicsItemFlag.ItemIsMovable |
-            QGraphicsItem.GraphicsItemFlag.ItemIsSelectable |
-            QGraphicsItem.GraphicsItemFlag.ItemSendsGeometryChanges
-        )
-        self.xbox_button = "None"
-        self.on_moved = None
-        self.handles = []
-        for corner in ("tl","tr","bl","br"):
-            h = ResizeHandle(corner,self)
-            h.setVisible(False)
-            self.handles.append(h)
-
-    def boundingRect(self):
-        return QRectF(0, 0, self.button_w, self.button_h)
-
-    def paint(self, painter, option, widget = None):
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        painter.setBrush(QBrush(self.color))
-        painter.setPen(QPen(Qt.GlobalColor.black, 2))
-
-        if self.button_shape == self.RECT:
-            painter.drawRect(0,0, self.button_w, self.button_h)
-        elif self.button_shape == self.ROUNDED_RECT:
-            painter.drawRoundedRect(0,0, self.button_w, self.button_h, self.rounding, self.rounding)
-        elif self.button_shape == self.CIRCLE:
-            painter.drawEllipse(0,0, self.button_w, self.button_h)
-
-        painter.setPen(QPen(self.font_color))
-        painter.setFont(QFont("Arial", self.font_size))
-        painter.drawText(QRectF(0,0,self.button_w, self.button_h), Qt.AlignmentFlag.AlignCenter, self.text)
-
-        if self.isSelected():
-            painter.setBrush(Qt.BrushStyle.NoBrush)
-            painter.setPen(QPen(Qt.GlobalColor.blue, 1, Qt.PenStyle.DashLine))
-            painter.drawRect(0,0, self.button_w, self.button_h)
-
-    def itemChange(self, change, value):
-        if change == QGraphicsItem.GraphicsItemChange.ItemSelectedChange:
-            for handle in self.handles:
-                handle.setVisible(bool(value))
-        if change == QGraphicsItem.GraphicsItemChange.ItemPositionChange:
-            scene_rect = self.scene().sceneRect()
-            clamped_x = max(scene_rect.left(), min(value.x(), scene_rect.right() - self.button_w))
-            clamped_y = max(scene_rect.top(), min(value.y(), scene_rect.bottom() - self.button_h))
-            return QPointF(clamped_x, clamped_y)
-
-        if change == QGraphicsItem.GraphicsItemChange.ItemPositionHasChanged:
-            if self.on_moved:
-                self.on_moved()
-
-
-        return super().itemChange(change, value)
 
 
 
@@ -248,10 +180,16 @@ class PropertiesSidebar(QWidget):
         )
         self.radius_spin.setValue(button.rounding)
         self.color_input.setText(QColor(button.color).name())
+
         self.text_input.setText(button.text)
+        is_special = button.button_type != "regular"
+        self.text_input.setReadOnly(is_special)
+        self.text_input.setEnabled(not is_special)
+
         self.font_color_input.setText(QColor(button.font_color).name())
         self.font_size_spin.setValue(button.font_size)
         self.xbox_combo.setCurrentText(button.xbox_button)
+
         self._updating = False
 
     def open_color_picker(self, target_input):
@@ -300,6 +238,12 @@ class LayoutBuilder(QMainWindow):
         delete_action = self.toolbar.addAction("Delete Button")
         delete_action.triggered.connect(self.delete_selected)
 
+        add_screenshot_action = self.toolbar.addAction("Add Screenshot Button")
+        add_screenshot_action.triggered.connect(lambda: self.create_special_button("screenshot", "Screenshot"))
+
+        add_pause_action = self.toolbar.addAction("Add Pause Action")
+        add_pause_action.triggered.connect(lambda: self.create_special_button("pause", "Pause"))
+
         self.dock = QDockWidget("Properties", self)
         self.dock.setAllowedAreas(Qt.DockWidgetArea.RightDockWidgetArea)
         self.dock.setFixedWidth(DOCK_WIDTH)
@@ -322,6 +266,19 @@ class LayoutBuilder(QMainWindow):
         btn = CustomButton(x, y, width, height, shape = CustomButton.CIRCLE)
         btn.on_moved = lambda: self.sidebar.populate(btn)
         self.scene.addItem(btn)
+
+    def create_special_button(self, button_type, label):
+        width, height = 100, 100
+        x = (SCENE_WIDTH / 2) - (width / 2)
+        y = (SCENE_HEIGHT / 2) - (height / 2)
+
+        btn = CustomButton(x, y, width, height, shape = CustomButton.CIRCLE)
+        btn.on_moved = lambda: self.sidebar.populate(btn)
+        self.scene.addItem(btn)
+
+        btn.text = label
+        btn.button_type = button_type
+
 
     def delete_selected(self):
         for item in self.scene.selectedItems():
@@ -369,6 +326,7 @@ class LayoutBuilder(QMainWindow):
             if isinstance(item, CustomButton):
                 buttons.append(
                     {
+                        "type": item.button_type,
                         "text": item.text,
                         "textColor": item.font_color.name(),
                         "textFontSize": item.font_size,
@@ -418,6 +376,7 @@ class LayoutBuilder(QMainWindow):
 
             btn = CustomButton(x, y, w, h, shape = shape, rounding = button.get("rounding", 10), color = button.get("color", "#000000"))
             btn.text = button.get("text", "")
+            btn.button_type = button.get("type","regular")
             btn.font_color = QColor(button.get("textColor","#ffffff"))
             btn.font_size = int(button.get("textFontSize", 14))
             btn.on_moved = lambda: self.sidebar.populate(btn)

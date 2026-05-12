@@ -1,21 +1,30 @@
 import asyncio
-
+import os
+from datetime import datetime
+import mss
+import mss.tools
 from bleak import BleakScanner, BleakClient
 import crcmod.predefined as crc
+
 from ReadFile import read_file
 INPUT_SERVICE_UUID = "0000feed-0000-1000-8000-00805f9b34fb"
 INPUT_CHAR_UUID = "0000beef-0000-1000-8000-00805f9b34fb"
 FILE_TRANSFER_CHAR_UUID = "efcdbf7b-fee2-489b-8f79-b649aa50619b"
 CONTROL_MESSAGE_CHAR_UUID = "4a55006e-990a-4737-9634-133466ef8e35"
+PAUSE_UUID= "446be5b0-93b7-4911-abbe-e4e18d545640"
+SCREENSHOT_UUID = "36d942a6-9e79-4812-8a8f-84a275f6b176"
 EMULATION = True
 from GamepadManager import GamepadManager
 from SocketHandler import SocketHandler
+from GetScreenshotsDir import get_screenshots_dir
 class DeviceBLE:
     def __init__(self, ):
         self.client = None
         self.device = None
         self.uuid_input_service = INPUT_SERVICE_UUID
         self.uuid_input_characteristic = INPUT_CHAR_UUID
+        self.uuid_pause_characteristic = PAUSE_UUID
+        self.uuid_screenshot_characteristic = SCREENSHOT_UUID
         self.socketHandler = SocketHandler(self)
         self.gamepadManager = GamepadManager()
         self.buffer = []
@@ -55,11 +64,24 @@ class DeviceBLE:
             if characteristic:
                 print(f"Characteristic found: {characteristic.uuid}")
                 await self.client.start_notify(self.uuid_input_characteristic, self.input_handler)
+                await self.client.start_notify(self.uuid_pause_characteristic, self.pause_handler)
+                await self.client.start_notify(self.uuid_screenshot_characteristic, self.uuid_screenshot_characteristic)
 
                 await self.client.start_notify(CONTROL_MESSAGE_CHAR_UUID, self.control_handler)
                 print(f"Subscribed to notifications")
             else:
                 print(f"Error, characteristic {self.uuid_input_characteristic} not found in discovered services.")
+
+    def screenshot_handler(self, sender, data):
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        path = os.path.join(get_screenshots_dir(), f"screenshot_{timestamp}.png")
+        with mss.mss() as sct:
+            sct.shot(output = path)
+
+
+    def pause_handler(self, sender, data):
+        self.socketHandler.addMessage(data)
+        print("Pause triggered")
 
     def input_handler(self, sender, data):
         value = data.decode('utf-8')
