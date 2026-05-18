@@ -7,6 +7,8 @@ from PySide6.QtWidgets import QGraphicsScene, QGraphicsView, QApplication, QGrap
     QMainWindow, QToolBar, QDockWidget, QWidget, QVBoxLayout, QLabel, QGroupBox, QSpinBox, QFormLayout, QComboBox, \
     QLineEdit, QFileDialog, QPushButton, QColorDialog
 from CustomButton import CustomButton
+from PropertiesSidebar import PropertiesSidebar
+
 SCENE_WIDTH = 1616
 SCENE_HEIGHT = 720
 DOCK_WIDTH = 200
@@ -21,195 +23,6 @@ class ViewContainer(QWidget):
         self.view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setStyleSheet("background: white;")
-
-    # def resizeEvent(self, event):
-    #     super().resizeEvent(event)
-    #     container_width, container_height = self.width(), self.height()
-    #
-    #     if container_width / container_height > ASPECT_RATIO:
-    #         view_width = int(container_height * ASPECT_RATIO)
-    #         view_height = container_height
-    #     else:
-    #         view_width = container_width
-    #         view_height = int(container_width / ASPECT_RATIO)
-    #
-    #     x = (container_width - view_width) // 2
-    #     y = (container_height - view_height) // 2
-    #     self.view.setGeometry(x, y, view_width, view_height)
-    #     self.view.fitInView(self.view.scene().sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
-
-
-
-
-
-
-class PropertiesSidebar(QWidget):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self._updating = False
-        layout = QVBoxLayout()
-        layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-
-        pos_group = QGroupBox("Position")
-        pos_form = QFormLayout()
-        self.x_spin = QSpinBox()
-        self.x_spin.setRange(0,SCENE_WIDTH)
-        self.y_spin = QSpinBox()
-        self.y_spin.setRange(0,SCENE_HEIGHT)
-        pos_form.addRow("X", self.x_spin)
-        pos_form.addRow("Y", self.y_spin)
-        pos_group.setLayout(pos_form)
-
-        size_group = QGroupBox("Size")
-        size_form = QFormLayout()
-        self.width_spin = QSpinBox()
-        self.width_spin.setRange(1, SCENE_WIDTH)
-        self.height_spin = QSpinBox()
-        self.height_spin.setRange(1, SCENE_HEIGHT)
-        size_form.addRow("Width", self.width_spin)
-        size_form.addRow("Height", self.height_spin)
-        size_group.setLayout(size_form)
-
-        shape_group = QGroupBox("Shape")
-        shape_form = QFormLayout()
-        self.shape_combo = QComboBox()
-        self.shape_combo.addItems(["Rounded Rectangle","Rectangle","Circle"])
-        self.radius_spin = QSpinBox()
-        self.radius_spin.setRange(0,100)
-        self.radius_spin.setValue(0)
-        shape_form.addRow("Shape",self.shape_combo)
-        shape_form.addRow("Radius", self.radius_spin)
-        shape_group.setLayout(shape_form)
-
-        color_group = QGroupBox("Color")
-        color_form = QFormLayout()
-
-        self.color_input = QLineEdit("#000000")
-        self.color_preview = QWidget()
-        self.color_preview.setStyleSheet("background-color: #ffffff;")
-        self.color_input.textChanged.connect(lambda text: self.on_color_changed(text, self.color_preview))
-
-        self.color_pick_btn = QPushButton("Pick Color")
-        self.color_pick_btn.clicked.connect(lambda: self.open_color_picker(self.color_input))
-
-        color_form.addRow("Hex", self.color_input)
-        color_form.addRow("Preview", self.color_preview)
-        color_form.addRow("Picker", self.color_pick_btn)
-
-        color_group.setLayout(color_form)
-        layout.addWidget(color_group)
-
-
-        label_group = QGroupBox("Label")
-        label_form = QFormLayout()
-        self.text_input = QLineEdit()
-
-        self.font_color_input = QLineEdit("#ffffff")
-        self.font_color_preview = QWidget()
-        self.font_color_preview.setStyleSheet("background-color: #ffffff;")
-        self.font_color_pick_btn = QPushButton("Pick Color")
-        self.font_color_pick_btn.clicked.connect(lambda: self.open_color_picker(self.font_color_input))
-        self.font_color_input.textChanged.connect(lambda text: self.on_color_changed(text, self.font_color_preview))
-
-        self.font_size_spin = QSpinBox()
-        self.font_size_spin.setRange(7,72)
-        self.font_size_spin.setValue(14)
-        label_form.addRow("Text",self.text_input)
-        label_form.addRow("Font Color", self.font_color_input)
-        label_form.addRow("Font Color", self.font_color_input)
-        label_form.addRow("Preview", self.font_color_preview)
-        label_form.addRow("Picker", self.font_color_pick_btn)
-        label_form.addRow("Font Size", self.font_size_spin)
-        label_group.setLayout(label_form)
-
-
-        #Add triggers and joystick, add joystick button, add direction and value for triggers and joystick
-        xbox_group = QGroupBox("Xbox Mapping")
-        xbox_form = QFormLayout()
-        self.xbox_combo = QComboBox()
-        self.xbox_combo.addItems([
-            "None",
-            "A",
-            "B",
-            "X",
-            "Y",
-            "LB",
-            "RB",
-            "LT",
-            "RT",
-            "Up",
-            "Down",
-            "Left",
-            "Right",
-            "Left Analog",
-            "Right Analog"
-        ])
-        xbox_form.addRow("Xbox Button", self.xbox_combo)
-        xbox_group.setLayout(xbox_form)
-
-        layout.addWidget(pos_group)
-        layout.addWidget(size_group)
-        layout.addWidget(shape_group)
-        layout.addWidget(label_group)
-        layout.addWidget(xbox_group)
-        layout.addStretch()
-        self.setLayout(layout)
-
-        self.x_spin.valueChanged.connect(self.on_property_changed)
-        self.y_spin.valueChanged.connect(self.on_property_changed)
-        self.width_spin.valueChanged.connect(self.on_property_changed)
-        self.height_spin.valueChanged.connect(self.on_property_changed)
-        self.shape_combo.currentTextChanged.connect(self.on_property_changed)
-        self.radius_spin.valueChanged.connect(self.on_property_changed)
-        self.text_input.textChanged.connect(self.on_property_changed)
-        self.font_size_spin.valueChanged.connect(self.on_property_changed)
-        self.xbox_combo.currentTextChanged.connect(self.on_property_changed)
-
-    def populate(self, button: CustomButton):
-        self._updating = True
-        self.x_spin.setValue(int(button.pos().x()))
-        self.y_spin.setValue(int(button.pos().y()))
-        self.width_spin.setValue(int(button.button_w))
-        self.height_spin.setValue(int(button.button_h))
-        self.shape_combo.setCurrentText(
-            {
-                CustomButton.RECT: "Rectangle",
-                CustomButton.ROUNDED_RECT: "Rounded Rectangle",
-                CustomButton.CIRCLE: "Circle"
-            }[button.button_shape]
-        )
-        self.radius_spin.setValue(button.rounding)
-        self.color_input.setText(QColor(button.color).name())
-
-        self.text_input.setText(button.text)
-        is_special = button.button_type != "regular"
-        self.text_input.setReadOnly(is_special)
-        self.text_input.setEnabled(not is_special)
-
-        self.font_color_input.setText(QColor(button.font_color).name())
-        self.font_size_spin.setValue(button.font_size)
-        self.xbox_combo.setCurrentText(button.xbox_button)
-
-        self._updating = False
-
-    def open_color_picker(self, target_input):
-        current = QColor(target_input.text())
-        color = QColorDialog.getColor(current, self, "Pick a Color")
-        if color.isValid():
-            target_input.setText(color.name())
-
-    def on_color_changed(self, text, target_preview):
-        if QColor(text).isValid():
-            target_preview.setStyleSheet(f"background-color: {text};")
-            self.on_property_changed()
-
-    def on_property_changed(self):
-        if self._updating:
-            return
-        self.apply_to_selected()
-
-    def apply_to_selected(self):
-        pass
 
 
 class LayoutBuilder(QMainWindow):
@@ -382,8 +195,9 @@ class LayoutBuilder(QMainWindow):
             btn.on_moved = lambda: self.sidebar.populate(btn)
             self.scene.addItem(btn)
 
-app = QApplication(sys.argv)
-window = LayoutBuilder()
-window.create_new_button()
-window.show()
-app.exec()
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = LayoutBuilder()
+    window.create_new_button()
+    window.show()
+    app.exec()

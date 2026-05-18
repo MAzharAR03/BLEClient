@@ -65,7 +65,7 @@ class DeviceBLE:
                 print(f"Characteristic found: {characteristic.uuid}")
                 await self.client.start_notify(self.uuid_input_characteristic, self.input_handler)
                 await self.client.start_notify(self.uuid_pause_characteristic, self.pause_handler)
-                await self.client.start_notify(self.uuid_screenshot_characteristic, self.uuid_screenshot_characteristic)
+                await self.client.start_notify(self.uuid_screenshot_characteristic, self.screenshot_handler)
 
                 await self.client.start_notify(CONTROL_MESSAGE_CHAR_UUID, self.control_handler)
                 print(f"Subscribed to notifications")
@@ -134,7 +134,10 @@ class DeviceBLE:
 
 
     async def send_file(self, filename):
+
         if self.client and self.client.is_connected:
+            import os
+            basename = os.path.basename(filename)
             print("File transfer started")
             mtu_size = self.client.mtu_size
             ATT_OVERHEAD = 10
@@ -142,7 +145,7 @@ class DeviceBLE:
             data = read_file(filename)
             await self.client.write_gatt_char(
                 CONTROL_MESSAGE_CHAR_UUID,
-                f"START:{filename}".encode('utf-8'),
+                f"START:{basename}".encode('utf-8'),
                 response=True
             )
             await self.send_chunks(data, CHUNK_SIZE)
