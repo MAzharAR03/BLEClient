@@ -32,6 +32,7 @@ class DeviceBLE:
         self.latest_control_message = None
         self.address = None
         self.loop = None
+        self.monitor_index = 1
 
 
 
@@ -76,7 +77,7 @@ class DeviceBLE:
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         path = os.path.join(get_screenshots_dir(), f"screenshot_{timestamp}.png")
         with mss.mss() as sct:
-            sct.shot(output = path)
+            sct.shot(mon = self.monitor_index, output = path)
 
 
     def pause_handler(self, sender, data):

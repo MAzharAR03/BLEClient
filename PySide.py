@@ -9,11 +9,7 @@ from PySide6.QtWidgets import QGraphicsScene, QGraphicsView, QApplication, QGrap
 from CustomButton import CustomButton
 from PropertiesSidebar import PropertiesSidebar
 
-SCENE_WIDTH = 1616
-SCENE_HEIGHT = 720
-DOCK_WIDTH = 200
-ASPECT_RATIO = 20/9
-TOOLBAR_HEIGHT = 50
+from config import SCENE_WIDTH, SCENE_HEIGHT, ASPECT_RATIO, TOOLBAR_HEIGHT, DOCK_WIDTH
 
 class ViewContainer(QWidget):
     def __init__(self, view, parent = None):

@@ -3,8 +3,7 @@ from PySide6.QtWidgets import QWidget, QColorDialog, QComboBox, QFormLayout, QGr
     QLineEdit, QVBoxLayout, QSlider
 
 from CustomButton import CustomButton
-from PySide import SCENE_HEIGHT, SCENE_WIDTH
-
+from config import SCENE_HEIGHT, SCENE_WIDTH
 
 class PropertiesSidebar(QWidget):
     def __init__(self, parent=None):

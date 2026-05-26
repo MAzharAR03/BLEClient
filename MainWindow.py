@@ -6,9 +6,9 @@ import websockets
 from PySide6 import QtAsyncio
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QGroupBox, QPushButton, QListWidget, QLabel, QCheckBox, \
-    QMessageBox, QFileDialog, QApplication, QListWidgetItem
+    QMessageBox, QFileDialog, QApplication, QListWidgetItem, QComboBox
 from bleak import BleakScanner
-
+import mss
 import DeviceBLE as ble_module
 from DeviceBLE import DeviceBLE, INPUT_SERVICE_UUID
 from PySide import LayoutBuilder
@@ -78,7 +78,14 @@ class ServerGUI(QMainWindow):
         self.emulation_toggle.setChecked(ble_module.EMULATION)
         self.emulation_toggle.stateChanged.connect(self.on_emulation_toggled)
 
+        self.monitor_dropdown = QComboBox()
+        self.populate_monitors()
+        self.monitor_dropdown.currentIndexChanged.connect(self.on_monitor_changed)
+
         settings_layout.addWidget(self.emulation_toggle)
+        settings_layout.addWidget((QLabel("Select Monitor to Screenshot:")))
+        settings_layout.addWidget(self.monitor_dropdown)
+
         settings_group.setLayout(settings_layout)
         layout.addWidget(settings_group)
 
@@ -186,6 +193,24 @@ class ServerGUI(QMainWindow):
         ble_module.EMULATION = is_enabled
         state_str = "Enabled" if is_enabled else "Disabled"
         self.status_label.setText(f"Status: Emulation {state_str}")
+
+    def populate_monitors(self):
+        with mss.MSS() as sct:
+            for i, monitor in enumerate(sct.monitors):
+                if i == 0:
+                    self.monitor_dropdown.addItem("All Monitors Combined", i)
+                else:
+                    text = f"Monitor {i} ({monitor['width']} x {monitor['height']}"
+                    self.monitor_dropdown.addItem(text,i)
+
+        if self.monitor_dropdown.count() > 1:
+            self.monitor_dropdown.setCurrentIndex(1)
+
+    def on_monitor_changed(self,index):
+        selected_monitor_index = self.monitor_dropdown.itemData(index)
+        if self.connected_device:
+            self.connected_device.monitor_index = selected_monitor_index
+
 
     def closeEvent(self, event):
         if self._is_shutting_down:
