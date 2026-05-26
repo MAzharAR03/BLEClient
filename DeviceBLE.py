@@ -69,6 +69,10 @@ class DeviceBLE:
                 await self.client.write_gatt_char(HEARTBEAT_UUID, b"PING", response=False)
             except Exception as e:
                 print(f"Heartbeat Write Failed: {e}")
+                if not self._disconnected:
+                    self._disconnected = True
+                    if self.on_disconnect is not None:
+                        self.on_disconnect()
                 break
             await asyncio.sleep(5)
             if self.latest_heartbeat is None and not self._disconnected:
