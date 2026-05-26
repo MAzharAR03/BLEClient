@@ -1,6 +1,6 @@
 from PySide6.QtGui import QColor, Qt
 from PySide6.QtWidgets import QWidget, QColorDialog, QComboBox, QFormLayout, QGroupBox, QSpinBox, QPushButton, \
-    QLineEdit, QVBoxLayout, QSlider
+    QLineEdit, QVBoxLayout, QSlider, QScrollArea
 
 from CustomButton import CustomButton
 from config import SCENE_HEIGHT, SCENE_WIDTH
@@ -9,7 +9,8 @@ class PropertiesSidebar(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._updating = False
-        layout = QVBoxLayout()
+        self._inner = QWidget()
+        layout = QVBoxLayout(self._inner)
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         pos_group = QGroupBox("Position")
@@ -59,7 +60,6 @@ class PropertiesSidebar(QWidget):
         color_form.addRow("Picker", self.color_pick_btn)
 
         color_group.setLayout(color_form)
-        layout.addWidget(color_group)
 
 
         label_group = QGroupBox("Label")
@@ -78,49 +78,58 @@ class PropertiesSidebar(QWidget):
         self.font_size_spin.setValue(14)
         label_form.addRow("Text",self.text_input)
         label_form.addRow("Font Color", self.font_color_input)
-        label_form.addRow("Font Color", self.font_color_input)
         label_form.addRow("Preview", self.font_color_preview)
         label_form.addRow("Picker", self.font_color_pick_btn)
         label_form.addRow("Font Size", self.font_size_spin)
         label_group.setLayout(label_form)
 
 
-        #Add triggers and joystick, add joystick button, add direction and value for triggers and joystick
-        xbox_group = QGroupBox("Xbox Mapping")
-        xbox_form = QFormLayout()
-        self.xbox_combo = QComboBox()
-        self.xbox_combo.addItems([
-            "None",
-            "A",
-            "B",
-            "X",
-            "Y",
-            "LB",
-            "RB",
-            "LT",
-            "RT",
-            "Up",
-            "Down",
-            "Left",
-            "Right",
-            "Left Analog",
-            "Right Analog"
-        ])
-        xbox_form.addRow("Xbox Button", self.xbox_combo)
-        xbox_group.setLayout(xbox_form)
-
-        self.trigger_group = QGroupBox("Trigger Config")
-        trigger_form = QFormLayout()
-        self.trigger_scale_slider = QSlider(Qt.Orientation.Horizontal)
-        self.trigger_sc
+        # #Add triggers and joystick, add joystick button, add direction and value for triggers and joystick
+        # xbox_group = QGroupBox("Xbox Mapping")
+        # xbox_form = QFormLayout()
+        # self.xbox_combo = QComboBox()
+        # self.xbox_combo.addItems([
+        #     "None",
+        #     "A",
+        #     "B",
+        #     "X",
+        #     "Y",
+        #     "LB",
+        #     "RB",
+        #     "LT",
+        #     "RT",
+        #     "Up",
+        #     "Down",
+        #     "Left",
+        #     "Right",
+        #     "Left Analog",
+        #     "Right Analog"
+        # ])
+        # xbox_form.addRow("Xbox Button", self.xbox_combo)
+        # xbox_group.setLayout(xbox_form)
+        #
+        # self.trigger_group = QGroupBox("Trigger Config")
+        # trigger_form = QFormLayout()
+        # self.trigger_scale_slider = QSlider(Qt.Orientation.Horizontal)
+        # self.trigger_sc
 
         layout.addWidget(pos_group)
         layout.addWidget(size_group)
         layout.addWidget(shape_group)
+        layout.addWidget(color_group)
         layout.addWidget(label_group)
-        layout.addWidget(xbox_group)
+        # layout.addWidget(xbox_group)
         layout.addStretch()
-        self.setLayout(layout)
+
+        scroll = QScrollArea()
+        scroll.setWidget(self._inner)
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.addWidget(scroll)
 
         self.x_spin.valueChanged.connect(self.on_property_changed)
         self.y_spin.valueChanged.connect(self.on_property_changed)
@@ -130,7 +139,7 @@ class PropertiesSidebar(QWidget):
         self.radius_spin.valueChanged.connect(self.on_property_changed)
         self.text_input.textChanged.connect(self.on_property_changed)
         self.font_size_spin.valueChanged.connect(self.on_property_changed)
-        self.xbox_combo.currentTextChanged.connect(self.on_property_changed)
+        # self.xbox_combo.currentTextChanged.connect(self.on_property_changed)
 
     def populate(self, button: CustomButton):
         self._updating = True
@@ -155,7 +164,7 @@ class PropertiesSidebar(QWidget):
 
         self.font_color_input.setText(QColor(button.font_color).name())
         self.font_size_spin.setValue(button.font_size)
-        self.xbox_combo.setCurrentText(button.xbox_button)
+        #self.xbox_combo.setCurrentText(button.xbox_button)
 
         self._updating = False
 

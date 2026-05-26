@@ -1,7 +1,7 @@
 import json
 import sys
 
-from PySide6.QtCore import Qt, QPointF, QRectF
+from PySide6.QtCore import Qt, QPointF, QRectF, QSize
 from PySide6.QtGui import QBrush, QPen, QPolygonF, QPixmap, QPainter, QFont, QColor
 from PySide6.QtWidgets import QGraphicsScene, QGraphicsView, QApplication, QGraphicsRectItem, QGraphicsItem, \
     QMainWindow, QToolBar, QDockWidget, QWidget, QVBoxLayout, QLabel, QGroupBox, QSpinBox, QFormLayout, QComboBox, \
@@ -18,7 +18,29 @@ class ViewContainer(QWidget):
         self.view.setParent(self)
         self.view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.setStyleSheet("background: white;")
+        self.setStyleSheet("background: transparent; border: none;")
+        self.setStyleSheet("background: #2b2b2b;")
+
+    def resizeEvent(self,event):
+        super().resizeEvent(event)
+        self._fit_view()
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self._fit_view()
+
+    def _fit_view(self):
+        container_w = self.width()
+        container_h = self.height()
+        target_w = container_w
+        target_h = int(target_w / ASPECT_RATIO)
+        if target_h > container_h:
+            target_h = container_h
+            target_w = int(target_h * ASPECT_RATIO)
+        x = (container_w - target_w) // 2
+        y = (container_h - target_h) //2
+        self.view.setGeometry(x,y,target_w, target_h)
+        self.view.fitInView(self.view.scene().sceneRect(), Qt.AspectRatioMode.IgnoreAspectRatio)
 
 
 class LayoutBuilder(QMainWindow):
@@ -40,7 +62,7 @@ class LayoutBuilder(QMainWindow):
         load_action = self.toolbar.addAction("Load Layout")
         load_action.triggered.connect(self.load_layout)
         self.toolbar.addSeparator()
-        self.toolbar.setFixedHeight(TOOLBAR_HEIGHT)
+        self.toolbar.setMinimumHeight(TOOLBAR_HEIGHT)
 
         add_button_action = self.toolbar.addAction("Add Button")
         add_button_action.triggered.connect(self.create_new_button)
@@ -55,13 +77,14 @@ class LayoutBuilder(QMainWindow):
 
         self.dock = QDockWidget("Properties", self)
         self.dock.setAllowedAreas(Qt.DockWidgetArea.RightDockWidgetArea)
-        self.dock.setFixedWidth(DOCK_WIDTH)
+        self.dock.setMinimumWidth(DOCK_WIDTH)
         self.dock.setFeatures(QDockWidget.DockWidgetFeature.DockWidgetClosable)
 
         self.sidebar = PropertiesSidebar()
         self.dock.setWidget(self.sidebar)
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.dock)
-        self.setFixedSize(SCENE_WIDTH + DOCK_WIDTH, SCENE_HEIGHT + TOOLBAR_HEIGHT)
+        self.resize(SCENE_WIDTH + DOCK_WIDTH, SCENE_HEIGHT + TOOLBAR_HEIGHT)
+        self.setMinimumSize(400 + DOCK_WIDTH, 300 + TOOLBAR_HEIGHT)
 
         self.scene.selectionChanged.connect(self.on_selection_changed)
         self.sidebar.apply_to_selected = self.apply_sidebar_to_selected
@@ -123,7 +146,7 @@ class LayoutBuilder(QMainWindow):
         if font_color.isValid():
             btn.font_color = font_color
         btn.font_size = self.sidebar.font_size_spin.value()
-        btn.xbox_button = self.sidebar.xbox_combo.currentText()
+        # btn.xbox_button = self.sidebar.xbox_combo.currentText()
 
         for handle in btn.handles:
             handle.update_position()
