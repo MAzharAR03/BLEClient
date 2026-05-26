@@ -13,7 +13,9 @@ FILE_TRANSFER_CHAR_UUID = "efcdbf7b-fee2-489b-8f79-b649aa50619b"
 CONTROL_MESSAGE_CHAR_UUID = "4a55006e-990a-4737-9634-133466ef8e35"
 PAUSE_UUID= "446be5b0-93b7-4911-abbe-e4e18d545640"
 SCREENSHOT_UUID = "36d942a6-9e79-4812-8a8f-84a275f6b176"
+HEARTBEAT_UUID = "a5307aef-3109-42f7-b79e-a493856823ba"
 EMULATION = True
+
 from GamepadManager import GamepadManager
 from SocketHandler import SocketHandler
 from GetScreenshotsDir import get_screenshots_dir
@@ -26,16 +28,16 @@ class DeviceBLE:
         self.uuid_pause_characteristic = PAUSE_UUID
         self.uuid_screenshot_characteristic = SCREENSHOT_UUID
         self.socketHandler = SocketHandler(self)
-        self.gamepadManager = GamepadManager()
+        self.gamepadManager = GamepadManager() if EMULATION else None
         self.buffer = []
         self.expecting_chunks = 0
         self.latest_control_message = None
         self.address = None
         self.loop = None
         self.monitor_index = 1
-
-
-
+        self.on_disconnect = None
+        self._disconnected = False
+        self.latest_heartbeat = None
 
     async def connect(self):
         self.loop = asyncio.get_event_loop()
@@ -43,8 +45,9 @@ class DeviceBLE:
             try:
                 print(f"Found device at address:{self.address}")
                 print("Attempting to connect")
-                self.client = BleakClient(self.address)
+                self.client = BleakClient(self.address, disconnected_callback=self._on_ble_disconnected)
                 await self.client.connect()
+                asyncio.create_task(self._heartbeat_loop())
                 print("Connected")
             except:
                 raise Exception("Failed to connect")
@@ -58,6 +61,27 @@ class DeviceBLE:
         except:
             raise Exception("Failed to disconnect")
 
+    async def _heartbeat_loop(self):
+        while not self._disconnected:
+            await asyncio.sleep(3)
+            try:
+                self.latest_heartbeat = None
+                await self.client.write_gatt_char(HEARTBEAT_UUID, b"PING", response=False)
+            except Exception as e:
+                print(f"Heartbeat Write Failed: {e}")
+                break
+            await asyncio.sleep(5)
+            if self.latest_heartbeat is None and not self._disconnected:
+                print("Heartbeat Time out")
+                self._disconnected = True
+                if self.on_disconnect is not None:
+                    self.on_disconnect()
+                break
+
+
+    def _on_ble_disconnected(self,client):
+        if self.on_disconnect is not None:
+            self.on_disconnect()
 
     async def notify(self):
         if self.client and self.client.is_connected:
@@ -67,7 +91,7 @@ class DeviceBLE:
                 await self.client.start_notify(self.uuid_input_characteristic, self.input_handler)
                 await self.client.start_notify(self.uuid_pause_characteristic, self.pause_handler)
                 await self.client.start_notify(self.uuid_screenshot_characteristic, self.screenshot_handler)
-
+                await self.client.start_notify(HEARTBEAT_UUID, self.heartbeat_handler)
                 await self.client.start_notify(CONTROL_MESSAGE_CHAR_UUID, self.control_handler)
                 print(f"Subscribed to notifications")
             else:
@@ -79,6 +103,8 @@ class DeviceBLE:
         with mss.mss() as sct:
             sct.shot(mon = self.monitor_index, output = path)
 
+    def heartbeat_handler(self, sender, data):
+        self.latest_heartbeat = data.decode('utf-8')
 
     def pause_handler(self, sender, data):
         self.socketHandler.addMessage(data)

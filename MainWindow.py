@@ -31,6 +31,20 @@ class ServerGUI(QMainWindow):
         layout = QVBoxLayout(main_widget)
         self.setCentralWidget(main_widget)
 
+        self.status_label = QLabel("Idle")
+        self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.status_label.setStyleSheet("""
+            QLabel {
+                color: #888888;
+                background-color: #2a2a2a;
+                font-size: 15px;
+                font-weight: bold;
+                padding: 10px;
+                border-radius: 6px;            
+            }
+        """)
+        layout.addWidget(self.status_label)
+
         #Device Discovery Section
         scan_group = QGroupBox("Scanning")
         scan_layout = QVBoxLayout()
@@ -89,10 +103,35 @@ class ServerGUI(QMainWindow):
         settings_group.setLayout(settings_layout)
         layout.addWidget(settings_group)
 
-        #Status Bar
-        self.status_label = QLabel("Status: Idle")
-        self.status_label.setStyleSheet("color: gray; font-weight: bold;")
-        layout.addWidget(self.status_label)
+    def set_status(self, text, state = "idle"):
+        colors = {
+            "idle": (text, "#888888", "#2a2a2a"),
+            "busy": (text, "#f0c040", "#2a2200"),
+            "ok": (text, "#50d070", "#002a10"),
+            "error": (text, "#e05050", "#2a0000"),
+        }
+        label, fg, bg = colors.get(state, colors["idle"])
+        self.status_label.setText(label)
+        self.status_label.setStyleSheet(f"""
+            QLabel {{
+                color: {fg};
+                background-color: {bg};
+                font-size: 15px;
+                font-weight: bold;
+                padding: 10px;
+                border-radius: 6px;
+            }}
+        """)
+
+    def on_device_disconnected(self):
+        if self._is_shutting_down:
+            return
+        self.connected_device = None
+        self.send_file_button.setEnabled(False)
+        self.scan_button.setEnabled(True)
+        self.connect_button.setEnabled(False)
+        self.set_status("Device Disconnected", "error")
+        QMessageBox.critical(self, "Disconnected", "The BLE device disconnected unexpectedly.")
 
 
     async def scan_for_devices(self):
@@ -128,6 +167,7 @@ class ServerGUI(QMainWindow):
 
         device = DeviceBLE()
         device.address = address
+        device.on_disconnect = self.on_device_disconnected
         try:
 
             await device.connect()
@@ -150,7 +190,6 @@ class ServerGUI(QMainWindow):
                     device.socketHandler.url,
                     device.socketHandler.port
             ):
-                self.status_label.setText(f"Status: WebSocket Connected")
                 await asyncio.Future()
         except Exception as e:
             print(f"WebSocket Error: {e}")
