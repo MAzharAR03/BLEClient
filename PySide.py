@@ -211,7 +211,9 @@ class LayoutBuilder(QMainWindow):
             btn.button_type = button.get("type","regular")
             btn.font_color = QColor(button.get("textColor","#ffffff"))
             btn.font_size = int(button.get("textFontSize", 14))
-            btn.on_moved = lambda: self.sidebar.populate(btn)
+            btn.on_moved = lambda b = btn: self.sidebar.populate(b)
+            #the default argument b=btn is provided because lambda captures the variable btn - which means all buttons will point to the last loaded button
+            #default argument overrides this behaviour as default argument values are evaluated at definition time
             self.scene.addItem(btn)
 
 if __name__ == "__main__":
