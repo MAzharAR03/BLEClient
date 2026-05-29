@@ -6,11 +6,12 @@ import websockets
 from PySide6 import QtAsyncio
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QGroupBox, QPushButton, QListWidget, QLabel, QCheckBox, \
-    QMessageBox, QFileDialog, QApplication, QListWidgetItem, QComboBox
+    QMessageBox, QFileDialog, QApplication, QListWidgetItem, QComboBox, QDoubleSpinBox
 from bleak import BleakScanner
 import mss
 import DeviceBLE as ble_module
 from DeviceBLE import DeviceBLE, INPUT_SERVICE_UUID
+from GPXManager import GPXManager
 from PySide import LayoutBuilder
 
 
@@ -84,6 +85,37 @@ class ServerGUI(QMainWindow):
         actions_group.setLayout(actions_layout)
         layout.addWidget(actions_group)
 
+        trail_group = QGroupBox("Trail")
+        trail_layout = QVBoxLayout()
+
+        coords_layout = QVBoxLayout()
+        self.lat_input = QDoubleSpinBox()
+        self.lat_input.setRange(-90.0, 90.0)
+        self.lat_input.setDecimals(7)
+        self.lat_input.setValue(3.2206334)
+        self.lat_input.setPrefix("Lat: ")
+
+        self.lon_input = QDoubleSpinBox()
+        self.lon_input.setRange(-180.0, 180.0)
+        self.lon_input.setDecimals(7)
+        self.lon_input.setValue(101.9676587)
+        self.lon_input.setPrefix("Lon: ")
+
+        self.start_trail_button = QPushButton("Start Trail")
+        self.start_trail_button.clicked.connect(self.on_start_trail_clicked)
+        self.start_trail_button.setEnabled(False)
+
+        self.stop_trail_button = QPushButton("Stop & Save Trail")
+        self.stop_trail_button.clicked.connect(self.on_stop_trail_clicked)
+        self.stop_trail_button.setEnabled(False)
+
+        trail_layout.addWidget(self.lat_input)
+        trail_layout.addWidget(self.lon_input)
+        trail_layout.addWidget(self.start_trail_button)
+        trail_layout.addWidget(self.stop_trail_button)
+        trail_group.setLayout(trail_layout)
+        layout.addWidget(trail_group)
+
         #Settings Section
         settings_group = QGroupBox("Settings")
         settings_layout = QVBoxLayout()
@@ -128,6 +160,8 @@ class ServerGUI(QMainWindow):
             return
         self.connected_device = None
         self.send_file_button.setEnabled(False)
+        self.start_trail_button.setEnabled(False)
+        self.stop_trail_button.setEnabled(False)
         self.scan_button.setEnabled(True)
         self.connect_button.setEnabled(False)
         self.set_status("Device Disconnected", "error")
@@ -172,10 +206,13 @@ class ServerGUI(QMainWindow):
 
             await device.connect()
             await device.notify()
+            await device.start_heartbeat_loop()
             self.connected_device = device
             asyncio.create_task(self.run_websocket_server(device))
 
             self.status_label.setText("Status: Connected")
+            self.send_file_button.setEnabled(True)
+            self.start_trail_button.setEnabled(True)
             self.send_file_button.setEnabled(True)
             self.scan_button.setEnabled(False)
         except Exception as e:
@@ -249,6 +286,28 @@ class ServerGUI(QMainWindow):
         selected_monitor_index = self.monitor_dropdown.itemData(index)
         if self.connected_device:
             self.connected_device.monitor_index = selected_monitor_index
+
+    def on_start_trail_clicked(self):
+        if not self.connected_device:
+            return
+        lat = self.lat_input.value()
+        lon = self.lon_input.value()
+        self.connected_device.gpx_manager = GPXManager(lat, lon)
+        self.start_trail_button.setEnabled(False)
+        self.stop_trail_button.setEnabled(True)
+        self.set_status("Trail started", "ok")
+
+    def on_stop_trail_clicked(self):
+        if not self.connected_device or not self.connected_device.gpx_manager:
+            return
+        path, _ = QFileDialog.getSaveFileName(self, "Save Trail", "", "GPX files (*.gpx)")
+        if path:
+            self.connected_device.gpx_manager.save(path)
+            self.set_status("Trail saved", "ok")
+        self.connected_device.gpx_manager = None
+        self.stop_trail_button.setEnabled(False)
+        self.start_trail_button.setEnabled(True)
+
 
 
     def closeEvent(self, event):

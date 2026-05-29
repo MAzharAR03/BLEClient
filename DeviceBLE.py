@@ -14,11 +14,13 @@ CONTROL_MESSAGE_CHAR_UUID = "4a55006e-990a-4737-9634-133466ef8e35"
 PAUSE_UUID= "446be5b0-93b7-4911-abbe-e4e18d545640"
 SCREENSHOT_UUID = "36d942a6-9e79-4812-8a8f-84a275f6b176"
 HEARTBEAT_UUID = "a5307aef-3109-42f7-b79e-a493856823ba"
+STEP_UUID = "c36f600d-a202-48cd-a839-7577abea4b1f"
 EMULATION = True
 
 from GamepadManager import GamepadManager
 from SocketHandler import SocketHandler
 from GetScreenshotsDir import get_screenshots_dir
+from ScreenshotHelper import save_screenshot_with_exif
 class DeviceBLE:
     def __init__(self, ):
         self.client = None
@@ -38,6 +40,7 @@ class DeviceBLE:
         self.on_disconnect = None
         self._disconnected = False
         self.latest_heartbeat = None
+        self.gpx_manager = None
 
     async def connect(self):
         self.loop = asyncio.get_event_loop()
@@ -47,7 +50,7 @@ class DeviceBLE:
                 print("Attempting to connect")
                 self.client = BleakClient(self.address, disconnected_callback=self._on_ble_disconnected)
                 await self.client.connect()
-                asyncio.create_task(self._heartbeat_loop())
+
                 print("Connected")
             except:
                 raise Exception("Failed to connect")
@@ -60,6 +63,11 @@ class DeviceBLE:
                 await self.client.disconnect()
         except:
             raise Exception("Failed to disconnect")
+
+
+    async def start_heartbeat_loop(self):
+        asyncio.create_task(self._heartbeat_loop())
+
 
     async def _heartbeat_loop(self):
         while not self._disconnected:
@@ -97,15 +105,27 @@ class DeviceBLE:
                 await self.client.start_notify(self.uuid_screenshot_characteristic, self.screenshot_handler)
                 await self.client.start_notify(HEARTBEAT_UUID, self.heartbeat_handler)
                 await self.client.start_notify(CONTROL_MESSAGE_CHAR_UUID, self.control_handler)
+                await self.client.start_notify(STEP_UUID, self.step_handler)
                 print(f"Subscribed to notifications")
             else:
                 print(f"Error, characteristic {self.uuid_input_characteristic} not found in discovered services.")
 
     def screenshot_handler(self, sender, data):
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        path = os.path.join(get_screenshots_dir(), f"screenshot_{timestamp}.png")
-        with mss.mss() as sct:
-            sct.shot(mon = self.monitor_index, output = path)
+        screenshots_dir = get_screenshots_dir()
+
+        if self.gpx_manager is not None:
+            lat, lon = self.gpx_manager.current_position()
+            png_path = os.path.join(screenshots_dir, f"screenshot_{timestamp}_tmp.png")
+            with mss.MSS() as sct:
+                sct.shot(mon = self.monitor_index, output = png_path)
+            jpg_path = os.path.join(screenshots_dir, f"screenshot_{timestamp}.jpg")
+            save_screenshot_with_exif(png_path,jpg_path,lat,lon)
+        else:
+            path = os.path.join(get_screenshots_dir(), f"screenshot_{timestamp}.png")
+            with mss.mss() as sct:
+                sct.shot(mon = self.monitor_index, output = path)
+
 
     def heartbeat_handler(self, sender, data):
         self.latest_heartbeat = data.decode('utf-8')
@@ -113,6 +133,10 @@ class DeviceBLE:
     def pause_handler(self, sender, data):
         self.socketHandler.addMessage(data)
         print("Pause triggered")
+
+    def step_handler(self, sender, data):
+        if self.gpx_manager is not None:
+            self.gpx_manager.on_step()
 
     def input_handler(self, sender, data):
         value = data.decode('utf-8')
