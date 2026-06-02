@@ -12,6 +12,7 @@ from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QGroupBox, QPus
 from bleak import BleakScanner
 import mss
 import DeviceBLE as ble_module
+from ConfigMapper import ConfigMapper
 from DeviceBLE import DeviceBLE, INPUT_SERVICE_UUID
 from GPXManager import GPXManager
 from MapBridge import MapBridge
@@ -21,6 +22,7 @@ from UIBuilder import LayoutBuilder
 class ServerGUI(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.config_mapper = None
         self._is_shutting_down = False
         self.setWindowTitle("Server")
         self.setMinimumSize(800, 600)
@@ -127,11 +129,15 @@ class ServerGUI(QMainWindow):
         self.emulation_toggle.setChecked(ble_module.EMULATION)
         self.emulation_toggle.stateChanged.connect(self.on_emulation_toggled)
 
+        self.config_mapper_button = QPushButton("Open Config Mapper")
+        self.config_mapper_button.clicked.connect(self.on_config_mapper_clicked)
+
         self.monitor_dropdown = QComboBox()
         self.populate_monitors()
         self.monitor_dropdown.currentIndexChanged.connect(self.on_monitor_changed)
 
         settings_layout.addWidget(self.emulation_toggle)
+        settings_layout.addWidget(self.config_mapper_button)
         settings_layout.addWidget((QLabel("Select Monitor to Screenshot:")))
         settings_layout.addWidget(self.monitor_dropdown)
 
@@ -274,6 +280,11 @@ class ServerGUI(QMainWindow):
         path, _ = QFileDialog.getOpenFileName(self, "Select Layout JSON", "", "JSON files (*.json)")
         if path:
             asyncio.create_task(self.async_send_file(path))
+
+
+    def on_config_mapper_clicked(self):
+        self.config_mapper = ConfigMapper()
+        self.config_mapper.show()
 
     def on_builder_button_clicked(self):
         self.builder_window = LayoutBuilder()
