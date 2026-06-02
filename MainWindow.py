@@ -1,10 +1,12 @@
 import asyncio
+import os
 import sys
 
 import qasync
 import websockets
-from PySide6 import QtAsyncio
 from PySide6.QtCore import Qt
+from PySide6.QtWebChannel import QWebChannel
+from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QGroupBox, QPushButton, QListWidget, QLabel, QCheckBox, \
     QMessageBox, QFileDialog, QApplication, QListWidgetItem, QComboBox, QDoubleSpinBox
 from bleak import BleakScanner
@@ -12,7 +14,8 @@ import mss
 import DeviceBLE as ble_module
 from DeviceBLE import DeviceBLE, INPUT_SERVICE_UUID
 from GPXManager import GPXManager
-from PySide import LayoutBuilder
+from MapBridge import MapBridge
+from UIBuilder import LayoutBuilder
 
 
 class ServerGUI(QMainWindow):
@@ -88,18 +91,20 @@ class ServerGUI(QMainWindow):
         trail_group = QGroupBox("Trail")
         trail_layout = QVBoxLayout()
 
-        coords_layout = QVBoxLayout()
-        self.lat_input = QDoubleSpinBox()
-        self.lat_input.setRange(-90.0, 90.0)
-        self.lat_input.setDecimals(7)
-        self.lat_input.setValue(3.2206334)
-        self.lat_input.setPrefix("Lat: ")
+        self._map_bridge = MapBridge()
+        self._map_bridge.set_callback(self._on_pin_placed)
 
-        self.lon_input = QDoubleSpinBox()
-        self.lon_input.setRange(-180.0, 180.0)
-        self.lon_input.setDecimals(7)
-        self.lon_input.setValue(101.9676587)
-        self.lon_input.setPrefix("Lon: ")
+        self.map_view = QWebEngineView()
+        self.map_view.setFixedHeight(350)
+        channel = QWebChannel(self.map_view.page())
+        channel.registerObject("bridge", self._map_bridge)
+        self.map_view.page().setWebChannel(channel)
+        self.map_view.setHtml(self._find_map())
+        trail_layout.addWidget(self.map_view)
+
+        self.pin_label = QLabel("No pin placed")
+        self.pin_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        trail_layout.addWidget(self.pin_label)
 
         self.start_trail_button = QPushButton("Start Trail")
         self.start_trail_button.clicked.connect(self.on_start_trail_clicked)
@@ -109,8 +114,6 @@ class ServerGUI(QMainWindow):
         self.stop_trail_button.clicked.connect(self.on_stop_trail_clicked)
         self.stop_trail_button.setEnabled(False)
 
-        trail_layout.addWidget(self.lat_input)
-        trail_layout.addWidget(self.lon_input)
         trail_layout.addWidget(self.start_trail_button)
         trail_layout.addWidget(self.stop_trail_button)
         trail_group.setLayout(trail_layout)
@@ -134,6 +137,17 @@ class ServerGUI(QMainWindow):
 
         settings_group.setLayout(settings_layout)
         layout.addWidget(settings_group)
+
+    def _on_pin_placed(self,lat,lon):
+        self.pin_label.setText(f"Pin: {lat:.6f}, {lon:.6f}")
+        if self.connected_device:
+            self.start_trail_button.setEnabled(True)
+
+    def _find_map(self):
+        map_html_path = os.path.join(os.path.dirname(__file__), "map.html")
+        with open(map_html_path, "r", encoding="utf-8") as f:
+            map_html = f.read()
+        return map_html
 
     def set_status(self, text, state = "idle"):
         colors = {
@@ -212,7 +226,8 @@ class ServerGUI(QMainWindow):
 
             self.status_label.setText("Status: Connected")
             self.send_file_button.setEnabled(True)
-            self.start_trail_button.setEnabled(True)
+            if self._map_bridge.position()[0] is not None:
+                self.start_trail_button.setEnabled(True)
             self.send_file_button.setEnabled(True)
             self.scan_button.setEnabled(False)
         except Exception as e:
@@ -290,8 +305,9 @@ class ServerGUI(QMainWindow):
     def on_start_trail_clicked(self):
         if not self.connected_device:
             return
-        lat = self.lat_input.value()
-        lon = self.lon_input.value()
+        lat, lon = self._map_bridge.position()
+        if lat is None:
+            return
         self.connected_device.gpx_manager = GPXManager(lat, lon)
         self.start_trail_button.setEnabled(False)
         self.stop_trail_button.setEnabled(True)
