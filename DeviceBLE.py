@@ -92,8 +92,10 @@ class DeviceBLE:
 
 
     def _on_ble_disconnected(self,client):
-        if self.on_disconnect is not None:
-            self.on_disconnect()
+        if not self._disconnected:
+            self._disconnected = True
+            if self.on_disconnect is not None:
+                self.on_disconnect()
 
     async def notify(self):
         if self.client and self.client.is_connected:
