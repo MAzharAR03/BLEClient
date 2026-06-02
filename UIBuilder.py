@@ -2,7 +2,7 @@ import json
 import sys
 
 from PySide6.QtCore import Qt, QPointF, QRectF, QSize
-from PySide6.QtGui import QBrush, QPen, QPolygonF, QPixmap, QPainter, QFont, QColor
+from PySide6.QtGui import QBrush, QPen, QPolygonF, QPixmap, QPainter, QFont, QColor, QGuiApplication
 from PySide6.QtWidgets import QGraphicsScene, QGraphicsView, QApplication, QGraphicsRectItem, QGraphicsItem, \
     QMainWindow, QToolBar, QDockWidget, QWidget, QVBoxLayout, QLabel, QGroupBox, QSpinBox, QFormLayout, QComboBox, \
     QLineEdit, QFileDialog, QPushButton, QColorDialog
@@ -83,11 +83,27 @@ class LayoutBuilder(QMainWindow):
         self.sidebar = PropertiesSidebar()
         self.dock.setWidget(self.sidebar)
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.dock)
-        self.resize(SCENE_WIDTH + DOCK_WIDTH, SCENE_HEIGHT + TOOLBAR_HEIGHT)
+
+
+        screen_width, screen_height = self.check_monitor_size()
+        self.resize(screen_width, screen_height)
         self.setMinimumSize(400 + DOCK_WIDTH, 300 + TOOLBAR_HEIGHT)
 
         self.scene.selectionChanged.connect(self.on_selection_changed)
         self.sidebar.apply_to_selected = self.apply_sidebar_to_selected
+
+    def check_monitor_size(self):
+        screen = QGuiApplication.primaryScreen()
+        available_geometry = screen.geometry()
+        monitor_width = available_geometry.width()
+        monitor_height = available_geometry.height()
+        target_width = SCENE_WIDTH + DOCK_WIDTH
+        target_height = SCENE_HEIGHT + TOOLBAR_HEIGHT
+
+        final_width = min(target_width, monitor_width)
+        final_height = min(target_height, monitor_height)
+
+        return final_width, final_height
 
     def create_new_button(self):
 
