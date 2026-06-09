@@ -13,3 +13,22 @@ def get_main_window_steps(ui):
         (ui.config_mapper_button,"Config Mapper",       "Configure the mapping of android inputs to Xbox controller inputs. "),
         (ui.monitor_dropdown,    "Monitor Select",      "Choose which monitor is captured for screenshot actions."),
     ]
+
+def get_config_mapper_steps(ui):
+    return [
+        (ui._toolbar_buttons["Load Layout"], "Load Button Layout", "Load the desired Android button layout first. This allows you to see which inputs are available."),
+        (ui._toolbar_buttons["Load Config"], "Load Mapping Config", "If you have stored mappings, you can load them with this button."),
+        (ui._toolbar_buttons["Export Config"], "Export Mapping Config", "This button will save the mapping to config.json. In the future, the server will allow for saving and using multiple different mapping configs."),
+        (ui._content, "Mapping Zone", "Clicked the + Add button to map an Android input (e.g button or stepping) to the selected Xbox input. Tilting can only be mapped to Joystick controls.")
+    ]
+
+def get_ui_builder_steps(ui):
+    return [
+        (ui._save_btn, "Save Layout", "Save a layout file into JSON format"),
+        (ui._load_btn, "Load Layout", "Load a layout file in JSON format to begin editing or start from scratch."),
+        (ui._add_btn, "Add a button", "Add a brand new button into the screen"),
+        (ui._delete_btn, "Delete Selected Button", "Delete the selected button"),
+        (ui._screenshot_btn, "Add the Special Screenshot button", "This adds the special button: Screenshot to your layout. This button's text cannot be edited. This button will tell the PC server to save a screenshot."),
+        (ui._pause_btn, "Add the Special Pause Button", "This adds the special button: Pause to your layout. This button's text cannot be edited. This button will tell the PC server to pause."),
+
+    ]

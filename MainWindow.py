@@ -12,6 +12,8 @@ from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QGroupBox, QPus
     QMessageBox, QFileDialog, QApplication, QListWidgetItem, QComboBox, QDoubleSpinBox
 from bleak import BleakScanner
 import mss
+
+import AppSettings
 import DeviceBLE as ble_module
 from ConfigMapper import ConfigMapper
 from DeviceBLE import DeviceBLE, INPUT_SERVICE_UUID
@@ -22,7 +24,7 @@ from TutorialSteps import get_main_window_steps
 from UIBuilder import LayoutBuilder
 from TutorialOverlay import TutorialOverlay
 
-SETTINGS_FILE = os.path.join(os.path.dirname(__file__), ".app_settings.json")
+SETTINGS_FILE = os.path.join(os.path.dirname(__file__), "settings.json")
 
 
 class ServerGUI(QMainWindow):
@@ -371,22 +373,11 @@ class ServerGUI(QMainWindow):
         finally:
             QApplication.instance().exit(0)
 
-    def _load_settings(self):
-        try:
-            with open(SETTINGS_FILE) as f:
-                return json.load(f)
-        except (FileNotFoundError, json.decoder.JSONDecodeError):
-            return {}
-
-    def _save_settings(self,data):
-        with open(SETTINGS_FILE, "w") as f:
-            json.dump(data, f)
 
     def _maybe_show_tutorial(self):
-        settings = self._load_settings()
-        if settings.get("tutorial_done"):
+        if AppSettings.get("tutorial_done"):
             return
-        self._save_settings({**settings, "tutorial_done": True})
+        AppSettings.set("tutorial_done", True)
         self._run_tutorial()
 
     def _run_tutorial(self):

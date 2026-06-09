@@ -6,8 +6,11 @@ from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QMainWindow, QVBoxLayout, QWidget, QHBoxLayout, QLabel, QPushButton, QScrollArea, QFrame, \
     QFileDialog, QMessageBox, QTextEdit, QDialog, QApplication
 
+import AppSettings
 from MapperHelperFunctions import rows_to_config, config_to_rows, get_android_inputs
 from RowWidget import RowWidget
+from TutorialOverlay import TutorialOverlay
+from TutorialSteps import  get_config_mapper_steps
 from XboxDictionary import XBOX_CONTROLS, ALWAYS_AVAILABLE, FLOAT_INPUTS
 
 
@@ -25,16 +28,16 @@ class ConfigMapper(QMainWindow):
         self._row_widgets = {}
 
         self._build_ui()
+        self._maybe_show_tutorial()
 
 
     def check_monitor_size(self, target_width, target_height):
-        screen = QGuiApplication.primaryScreen()
-        available_geometry = screen.geometry()
-        monitor_width = available_geometry.width()
-        monitor_height = available_geometry.height()
+        screens = QGuiApplication.screens()
+        max_width = max(screen.geometry().width() for screen in screens)
+        max_height = max(screen.geometry().height() for screen in screens)
 
-        final_width = min(target_width, monitor_width)
-        final_height = min(target_height, monitor_height)
+        final_width = min(target_width, max_width)
+        final_height = min(target_height, max_height)
 
         return final_width, final_height
 
@@ -55,6 +58,7 @@ class ConfigMapper(QMainWindow):
         toolbar_layout.addWidget(title)
         toolbar_layout.addStretch()
 
+        self._toolbar_buttons = {}
         for text, slot in [
             ("Load Layout", self._load_layout),
             ("Load Config", self._load_config),
@@ -68,6 +72,7 @@ class ConfigMapper(QMainWindow):
             )
             button.clicked.connect(slot)
             toolbar_layout.addWidget(button)
+            self._toolbar_buttons[text] = button
 
         root.addWidget(toolbar)
 
@@ -80,11 +85,11 @@ class ConfigMapper(QMainWindow):
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.NoFrame)
-        content = QWidget()
-        self._content_layout = QVBoxLayout(content)
+        self._content = QWidget()
+        self._content_layout = QVBoxLayout(self._content)
         self._content_layout.setContentsMargins(16, 12, 16, 12)
         self._content_layout.setSpacing(0)
-        scroll.setWidget(content)
+        scroll.setWidget(self._content)
         root.addWidget(scroll, 1)
 
         self._build_rows()
@@ -198,6 +203,17 @@ class ConfigMapper(QMainWindow):
         save_button.clicked.connect(save)
         close_button.clicked.connect(dialog.accept)
         dialog.exec()
+
+    def _maybe_show_tutorial(self):
+        if AppSettings.get("config_tutorial_done"):
+            return
+        AppSettings.set("config_tutorial_done", True)
+        self._run_tutorial()
+
+    def _run_tutorial(self):
+        self._overlay = TutorialOverlay(self)
+        self._overlay.setGeometry(self.rect())
+        self._overlay.set_steps(get_config_mapper_steps(self))
 
 
 def main():

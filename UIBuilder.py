@@ -6,8 +6,12 @@ from PySide6.QtGui import QBrush, QPen, QPolygonF, QPixmap, QPainter, QFont, QCo
 from PySide6.QtWidgets import QGraphicsScene, QGraphicsView, QApplication, QGraphicsRectItem, QGraphicsItem, \
     QMainWindow, QToolBar, QDockWidget, QWidget, QVBoxLayout, QLabel, QGroupBox, QSpinBox, QFormLayout, QComboBox, \
     QLineEdit, QFileDialog, QPushButton, QColorDialog
+
+import AppSettings
 from CustomButton import CustomButton
 from PropertiesSidebar import PropertiesSidebar
+from TutorialOverlay import TutorialOverlay
+from TutorialSteps import get_ui_builder_steps
 
 from config import SCENE_WIDTH, SCENE_HEIGHT, ASPECT_RATIO, TOOLBAR_HEIGHT, DOCK_WIDTH
 
@@ -58,22 +62,29 @@ class LayoutBuilder(QMainWindow):
         self.addToolBar(self.toolbar)
         save_action = self.toolbar.addAction("Save Layout")
         save_action.triggered.connect(self.save_layout)
+        self._save_btn = self.toolbar.widgetForAction(save_action)
 
         load_action = self.toolbar.addAction("Load Layout")
         load_action.triggered.connect(self.load_layout)
+        self._load_btn = self.toolbar.widgetForAction(load_action)
         self.toolbar.addSeparator()
         self.toolbar.setMinimumHeight(TOOLBAR_HEIGHT)
 
         add_button_action = self.toolbar.addAction("Add Button")
         add_button_action.triggered.connect(self.create_new_button)
+        self._add_btn = self.toolbar.widgetForAction(add_button_action)
+
         delete_action = self.toolbar.addAction("Delete Button")
         delete_action.triggered.connect(self.delete_selected)
+        self._delete_btn = self.toolbar.widgetForAction(delete_action)
 
         add_screenshot_action = self.toolbar.addAction("Add Screenshot Button")
         add_screenshot_action.triggered.connect(lambda: self.create_special_button("screenshot", "Screenshot"))
+        self._screenshot_btn = self.toolbar.widgetForAction(add_screenshot_action)
 
         add_pause_action = self.toolbar.addAction("Add Pause Action")
         add_pause_action.triggered.connect(lambda: self.create_special_button("pause", "Pause"))
+        self._pause_btn = self.toolbar.widgetForAction(add_pause_action)
 
         self.dock = QDockWidget("Properties", self)
         self.dock.setAllowedAreas(Qt.DockWidgetArea.RightDockWidgetArea)
@@ -92,16 +103,17 @@ class LayoutBuilder(QMainWindow):
         self.scene.selectionChanged.connect(self.on_selection_changed)
         self.sidebar.apply_to_selected = self.apply_sidebar_to_selected
 
+        self._maybe_show_tutorial()
+
     def check_monitor_size(self):
-        screen = QGuiApplication.primaryScreen()
-        available_geometry = screen.geometry()
-        monitor_width = available_geometry.width()
-        monitor_height = available_geometry.height()
+        screens = QGuiApplication.screens()
+        max_width = max(screen.geometry().width() for screen in screens)
+        max_height = max(screen.geometry().height() for screen in screens)
         target_width = SCENE_WIDTH + DOCK_WIDTH
         target_height = SCENE_HEIGHT + TOOLBAR_HEIGHT
 
-        final_width = min(target_width, monitor_width)
-        final_height = min(target_height, monitor_height)
+        final_width = min(target_width, max_width)
+        final_height = min(target_height, max_height)
 
         return final_width, final_height
 
@@ -231,6 +243,22 @@ class LayoutBuilder(QMainWindow):
             #the default argument b=btn is provided because lambda captures the variable btn - which means all buttons will point to the last loaded button
             #default argument overrides this behaviour as default argument values are evaluated at definition time
             self.scene.addItem(btn)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if hasattr(self, '_overlay') and self._overlay.isVisible():
+            self._overlay.setGeometry(self.rect())
+
+    def _maybe_show_tutorial(self):
+        if AppSettings.get("ui_tutorial_done"):
+            return
+        AppSettings.set("ui_tutorial_done", True)
+        self._run_tutorial()
+
+    def _run_tutorial(self):
+        self._overlay = TutorialOverlay(self)
+        self._overlay.setGeometry(self.rect())
+        self._overlay.set_steps(get_ui_builder_steps(self))
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
