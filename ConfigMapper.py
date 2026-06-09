@@ -154,7 +154,7 @@ class ConfigMapper(QMainWindow):
             self._rows = config_to_rows(config)
             self._build_rows()
             self._status_label.setText(
-                self._status_lbl.text().split(" | Config:")[0]
+                self._status_label.text().split(" | Config:")[0]
                 + f" | Config: {Path(path).name}"
             )
         except Exception as e:
@@ -189,13 +189,10 @@ class ConfigMapper(QMainWindow):
         layout.addLayout(button_row)
 
         def save():
-            path, _ = QFileDialog.getSaveFileName(
-                dialog, "Save Config", "config.json", "JSON Files (*.json)"
-            )
-            if path:
-                with open(path, "w") as f:
-                    f.write(output)
-                QMessageBox.information(dialog, "Saved", f"Config saved to:\n{path}")
+            path = "config.json"
+            with open(path, "w") as f:
+                f.write(output)
+            QMessageBox.information(dialog, "Saved", f"Config saved to:\n{path}")
 
 
         save_button.clicked.connect(save)

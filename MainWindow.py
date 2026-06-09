@@ -1,10 +1,11 @@
 import asyncio
+import json
 import os
 import sys
 
 import qasync
 import websockets
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QGroupBox, QPushButton, QListWidget, QLabel, QCheckBox, \
@@ -16,7 +17,12 @@ from ConfigMapper import ConfigMapper
 from DeviceBLE import DeviceBLE, INPUT_SERVICE_UUID
 from GPXManager import GPXManager
 from MapBridge import MapBridge
+from ReadFile import read_file
+from TutorialSteps import get_main_window_steps
 from UIBuilder import LayoutBuilder
+from TutorialOverlay import TutorialOverlay
+
+SETTINGS_FILE = os.path.join(os.path.dirname(__file__), ".app_settings.json")
 
 
 class ServerGUI(QMainWindow):
@@ -90,7 +96,7 @@ class ServerGUI(QMainWindow):
         actions_group.setLayout(actions_layout)
         layout.addWidget(actions_group)
 
-        trail_group = QGroupBox("Trail")
+        self.trail_group = QGroupBox("Trail")
         trail_layout = QVBoxLayout()
 
         self._map_bridge = MapBridge()
@@ -118,8 +124,8 @@ class ServerGUI(QMainWindow):
 
         trail_layout.addWidget(self.start_trail_button)
         trail_layout.addWidget(self.stop_trail_button)
-        trail_group.setLayout(trail_layout)
-        layout.addWidget(trail_group)
+        self.trail_group.setLayout(trail_layout)
+        layout.addWidget(self.trail_group)
 
         #Settings Section
         settings_group = QGroupBox("Settings")
@@ -143,6 +149,7 @@ class ServerGUI(QMainWindow):
 
         settings_group.setLayout(settings_layout)
         layout.addWidget(settings_group)
+        QTimer.singleShot(300, self._maybe_show_tutorial)
 
     def _on_pin_placed(self,lat,lon):
         self.pin_label.setText(f"Pin: {lat:.6f}, {lon:.6f}")
@@ -150,9 +157,7 @@ class ServerGUI(QMainWindow):
             self.start_trail_button.setEnabled(True)
 
     def _find_map(self):
-        map_html_path = os.path.join(os.path.dirname(__file__), "map.html")
-        with open(map_html_path, "r", encoding="utf-8") as f:
-            map_html = f.read()
+        map_html = read_file("map.html")
         return map_html
 
     def set_status(self, text, state = "idle"):
@@ -335,6 +340,10 @@ class ServerGUI(QMainWindow):
         self.stop_trail_button.setEnabled(False)
         self.start_trail_button.setEnabled(True)
 
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if hasattr(self, '_overlay') and self._overlay.isVisible():
+            self._overlay.resizeEvent(event)
 
 
     def closeEvent(self, event):
@@ -361,6 +370,29 @@ class ServerGUI(QMainWindow):
             print(f"Disconnecting Error: {e}")
         finally:
             QApplication.instance().exit(0)
+
+    def _load_settings(self):
+        try:
+            with open(SETTINGS_FILE) as f:
+                return json.load(f)
+        except (FileNotFoundError, json.decoder.JSONDecodeError):
+            return {}
+
+    def _save_settings(self,data):
+        with open(SETTINGS_FILE, "w") as f:
+            json.dump(data, f)
+
+    def _maybe_show_tutorial(self):
+        settings = self._load_settings()
+        if settings.get("tutorial_done"):
+            return
+        self._save_settings({**settings, "tutorial_done": True})
+        self._run_tutorial()
+
+    def _run_tutorial(self):
+        self._overlay = TutorialOverlay(self)
+        self._overlay.setGeometry(self.rect())
+        self._overlay.set_steps(get_main_window_steps(self))
 
 
 if __name__ == "__main__":

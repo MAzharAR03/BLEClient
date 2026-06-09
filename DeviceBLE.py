@@ -6,7 +6,7 @@ import mss.tools
 from bleak import BleakScanner, BleakClient
 import crcmod.predefined as crc
 
-from ReadFile import read_file
+from ReadFile import read_file_b
 INPUT_SERVICE_UUID = "0000feed-0000-1000-8000-00805f9b34fb"
 INPUT_CHAR_UUID = "0000beef-0000-1000-8000-00805f9b34fb"
 FILE_TRANSFER_CHAR_UUID = "efcdbf7b-fee2-489b-8f79-b649aa50619b"
@@ -199,7 +199,7 @@ class DeviceBLE:
             mtu_size = self.client.mtu_size
             ATT_OVERHEAD = 10
             CHUNK_SIZE = mtu_size - ATT_OVERHEAD
-            data = read_file(filename)
+            data = read_file_b(filename)
             await self.client.write_gatt_char(
                 CONTROL_MESSAGE_CHAR_UUID,
                 f"START:{basename}".encode('utf-8'),

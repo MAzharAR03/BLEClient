@@ -2,13 +2,13 @@ import json
 
 import vgamepad as vg
 
-from ReadFile import read_file
+from ReadFile import read_file_b
 from Mapper import apply_control
 
 class GamepadManager:
     def __init__(self, config_path = "config.json"):
         self.gamepad = vg.VX360Gamepad()
-        self.mapping = json.loads(read_file(config_path))
+        self.mapping = json.loads(read_file_b(config_path))
 
     def update_state(self, input_json):
         try:
