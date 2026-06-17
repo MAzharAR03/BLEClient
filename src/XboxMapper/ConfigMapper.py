@@ -32,12 +32,11 @@ class ConfigMapper(QMainWindow):
 
 
     def check_monitor_size(self, target_width, target_height):
-        screens = QGuiApplication.screens()
-        max_width = max(screen.geometry().width() for screen in screens)
-        max_height = max(screen.geometry().height() for screen in screens)
+        screen = QGuiApplication.primaryScreen()
+        available = screen.availableGeometry()
 
-        final_width = min(target_width, max_width)
-        final_height = min(target_height, max_height)
+        final_width = min(target_width, available.width())
+        final_height = min(target_height, available.height())
 
         return final_width, final_height
 
@@ -139,7 +138,7 @@ class ConfigMapper(QMainWindow):
 
     def _load_layout(self):
         path, _ = QFileDialog.getOpenFileName(
-            self, "Open Layout JSON", "", "JSON Files (*.json)"
+            self, "Open Layout File", "", "Layout Files (*.layout)"
         )
         if not path:
             return
@@ -158,7 +157,7 @@ class ConfigMapper(QMainWindow):
 
     def _load_config(self):
         path, _ = QFileDialog.getOpenFileName(
-            self, "Open Config JSON", "", "JSON Files (*.json)"
+            self, "Open Config File", "", "Config Files (*.cfg)"
         )
         if not path:
             return
@@ -203,7 +202,7 @@ class ConfigMapper(QMainWindow):
         layout.addLayout(button_row)
 
         def save():
-            path = "../../config.json"
+            path = "../../config.cfg"
             with open(path, "w") as f:
                 f.write(output)
             QMessageBox.information(dialog, "Saved", f"Config saved to:\n{path}")

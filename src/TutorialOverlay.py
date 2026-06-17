@@ -16,7 +16,7 @@ class TutorialOverlay(QWidget):
         self._spotlight_rect = QRect()
 
         self._bubble = QWidget(self)
-        self._bubble.setFixedWidth(260)
+        self._bubble.setMinimumWidth(260)
 
         bubble_layout = QVBoxLayout(self._bubble)
         bubble_layout.setContentsMargins(12,10,12,10)
@@ -54,7 +54,7 @@ class TutorialOverlay(QWidget):
         """)
         self._title_label.setStyleSheet(
             "color: #a0a0ff; font-weight: bold; font-size: 13px; background: transparent; border: none;")
-        self._desc_label.setStyleSheet("color: #cccccc; font-size: 11px; background: transparent; border: none;")
+        self._desc_label.setStyleSheet("color: #cccccc; font-size: 16px; background: transparent; border: none;")
         self._next_button.setStyleSheet(
             "QPushButton { background: #3a3a7a; color: white; border-radius: 5px; padding: 5px 14px; } QPushButton:hover { background: #5a5aaa; }")
         self._skip_button.setStyleSheet(

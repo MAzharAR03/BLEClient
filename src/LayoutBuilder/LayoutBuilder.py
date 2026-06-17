@@ -122,10 +122,9 @@ class LayoutBuilder(QMainWindow):
         self.dock.setWidget(self.sidebar)
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.dock)
 
-
+        self.setMinimumSize(400 + DOCK_WIDTH, 300 + TOOLBAR_HEIGHT)
         screen_width, screen_height = self.check_monitor_size()
         self.resize(screen_width, screen_height)
-        self.setMinimumSize(400 + DOCK_WIDTH, 300 + TOOLBAR_HEIGHT)
 
         self.scene.selectionChanged.connect(self.on_selection_changed)
         self.sidebar.apply_to_selected = self.apply_sidebar_to_selected
@@ -209,14 +208,14 @@ class LayoutBuilder(QMainWindow):
                     self.bg_pixmap_item = None
 
     def check_monitor_size(self):
-        screens = QGuiApplication.screens()
-        max_width = max(screen.geometry().width() for screen in screens)
-        max_height = max(screen.geometry().height() for screen in screens)
+        screen = QGuiApplication.primaryScreen()
+        available = screen.availableGeometry()  # excludes taskbar
+
         target_width = SCENE_WIDTH + DOCK_WIDTH
         target_height = SCENE_HEIGHT + TOOLBAR_HEIGHT
 
-        final_width = min(target_width, max_width)
-        final_height = min(target_height, max_height)
+        final_width = min(target_width, available.width())
+        final_height = min(target_height, available.height())
 
         return final_width, final_height
 
@@ -250,11 +249,10 @@ class LayoutBuilder(QMainWindow):
 
     def on_selection_changed(self):
         selected = self.scene.selectedItems()
-        if len(selected) == 1 and isinstance(selected[0], CustomButton):
+        if len(selected) == 1:
             self.sidebar.populate(selected[0])
 
     def apply_sidebar_to_selected(self):
-        selected = self.scene.selectedItems()
         selected = self.scene.selectedItems()
         if not selected:
             return
@@ -324,13 +322,13 @@ class LayoutBuilder(QMainWindow):
                     "imageURL": item.image_url
                 }
                 layout_data["images"].append(img_data)
-        path, _ = QFileDialog.getSaveFileName(self, "Save Layout", "", "JSON files (*.json)")
+        path, _ = QFileDialog.getSaveFileName(self, "Save Layout", "", "Layout files (*.layout)")
         if path:
             with open(path, "w") as file:
                 json.dump(layout_data, file, indent=2)
 
     def load_layout(self):
-        path, _ = QFileDialog.getOpenFileName(self, "Load Layout", "", "JSON files (*.json)")
+        path, _ = QFileDialog.getOpenFileName(self, "Load Layout", "", "Layout files (*.layout)")
         if not path:
             return
 

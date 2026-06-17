@@ -1,7 +1,7 @@
 import json
 import os
 
-SETTINGS_FILE = os.path.join(os.path.dirname(__file__), "settings.json")
+SETTINGS_FILE = os.path.join(os.path.dirname(__file__), "settings.settings")
 
 def load():
     try:

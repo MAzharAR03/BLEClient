@@ -23,7 +23,7 @@ from TutorialSteps import get_main_window_steps
 from src.LayoutBuilder.LayoutBuilder import LayoutBuilder
 from TutorialOverlay import TutorialOverlay
 
-SETTINGS_FILE = os.path.join(os.path.dirname(__file__), "settings.json")
+SETTINGS_FILE = os.path.join(os.path.dirname(__file__), "settings.settings")
 
 
 class ServerGUI(QMainWindow):
@@ -283,7 +283,7 @@ class ServerGUI(QMainWindow):
             QMessageBox.warning(self, "Warning", "No device connected")
             return
 
-        path, _ = QFileDialog.getOpenFileName(self, "Select Layout JSON", "", "JSON files (*.json)")
+        path, _ = QFileDialog.getOpenFileName(self, "Select Layout File", "", "Layout files (*.layout)")
         if path:
             asyncio.create_task(self.async_send_file(path))
 

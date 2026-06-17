@@ -17,7 +17,7 @@ def get_config_mapper_steps(ui):
     return [
         (ui._toolbar_buttons["Load Layout"], "Load Button Layout", "Load the desired Android button layout first. This allows you to see which inputs are available."),
         (ui._toolbar_buttons["Load Config"], "Load Mapping Config", "If you have stored mappings, you can load them with this button."),
-        (ui._toolbar_buttons["Export Config"], "Export Mapping Config", "This button will save the mapping to config.json. In the future, the server will allow for saving and using multiple different mapping configs."),
+        (ui._toolbar_buttons["Export Config"], "Export Mapping Config", "This button will save the mapping to config.cfg. In the future, the server will allow for saving and using multiple different mapping configs."),
         (ui._content, "Mapping Zone", "Clicked the + Add button to map an Android input (e.g button or stepping) to the selected Xbox input. Tilting can only be mapped to Joystick controls.")
     ]
 
