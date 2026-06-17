@@ -18,7 +18,7 @@ class SocketHandler:
 
         async def receiver():
             async for message in websocket:
-                filename = "layout.json"
+                filename = "../layout.json"
                 with open(filename,"w") as f:
                     f.write(message)
                 print("JSON file received")

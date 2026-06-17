@@ -6,11 +6,11 @@ from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QMainWindow, QVBoxLayout, QWidget, QHBoxLayout, QLabel, QPushButton, QScrollArea, QFrame, \
     QFileDialog, QMessageBox, QTextEdit, QDialog, QApplication
 
-import AppSettings
+from src import AppSettings
 from MapperHelperFunctions import rows_to_config, config_to_rows, get_android_inputs
 from RowWidget import RowWidget
-from TutorialOverlay import TutorialOverlay
-from TutorialSteps import  get_config_mapper_steps
+from src.TutorialOverlay import TutorialOverlay
+from src.TutorialSteps import  get_config_mapper_steps
 from XboxDictionary import XBOX_CONTROLS, ALWAYS_AVAILABLE, FLOAT_INPUTS
 
 

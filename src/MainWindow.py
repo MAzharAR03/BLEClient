@@ -12,7 +12,7 @@ from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QGroupBox, QPus
 from bleak import BleakScanner
 import mss
 
-import AppSettings
+from src import AppSettings
 import DeviceBLE as ble_module
 from src.XboxMapper.ConfigMapper import ConfigMapper
 from DeviceBLE import DeviceBLE, INPUT_SERVICE_UUID
@@ -158,7 +158,7 @@ class ServerGUI(QMainWindow):
             self.start_trail_button.setEnabled(True)
 
     def _find_map(self):
-        map_html = read_file("map.html")
+        map_html = read_file("../map.html")
         return map_html
 
     def set_status(self, text, state = "idle"):

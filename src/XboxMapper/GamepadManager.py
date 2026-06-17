@@ -2,7 +2,7 @@ import json
 
 import vgamepad as vg
 
-from ReadFile import read_file_b
+from src.ReadFile import read_file_b
 from src.XboxMapper.Mapper import apply_control
 
 class GamepadManager:

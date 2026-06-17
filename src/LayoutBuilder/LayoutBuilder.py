@@ -4,17 +4,17 @@ import sys
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QGuiApplication
 from PySide6.QtWidgets import QGraphicsScene, QGraphicsView, QApplication, QMainWindow, QToolBar, QDockWidget, QWidget, \
-    QFileDialog
+    QFileDialog, QInputDialog
 
-import AppSettings
+from src import AppSettings
 from src.LayoutBuilder.CustomButton import CustomButton
 from src.LayoutBuilder.CustomImageItem import CustomImageItem
 from src.LayoutBuilder.ImageNetworkManager import ImageNetworkManager
 from src.LayoutBuilder.PropertiesSidebar import PropertiesSidebar
-from TutorialOverlay import TutorialOverlay
-from TutorialSteps import get_ui_builder_steps
+from src.TutorialOverlay import TutorialOverlay
+from src.TutorialSteps import get_ui_builder_steps
 
-from config import SCENE_WIDTH, SCENE_HEIGHT, ASPECT_RATIO, TOOLBAR_HEIGHT, DOCK_WIDTH
+from src.config import SCENE_WIDTH, SCENE_HEIGHT, ASPECT_RATIO, TOOLBAR_HEIGHT, DOCK_WIDTH
 
 class ViewContainer(QWidget):
     def __init__(self, view, parent = None):
@@ -64,6 +64,8 @@ class LayoutBuilder(QMainWindow):
         self.image_fetcher.error_occurred.connect(self.on_image_error)
 
         self.pending_image_requests = {}
+        self.bg_image_url = ""
+        self.bg_pixmap_item = None
 
         self.toolbar = QToolBar("Toolbar")
         self.addToolBar(self.toolbar)
@@ -96,6 +98,10 @@ class LayoutBuilder(QMainWindow):
         add_image_action = self.toolbar.addAction("Add Image")
         add_image_action.triggered.connect(self.add_image_item)
         self._image_btn = self.toolbar.widgetForAction(add_image_action)
+
+        set_bg_action = self.toolbar.addAction("Add Background Image")
+        set_bg_action.triggered.connect(self.prompt_background_image)
+        self._bg_btn = self.toolbar.widgetForAction(set_bg_action)
 
         self.dock = QDockWidget("Properties", self)
         self.dock.setAllowedAreas(Qt.DockWidgetArea.RightDockWidgetArea)
@@ -151,16 +157,41 @@ class LayoutBuilder(QMainWindow):
             self.image_fetcher.fetch(url_string)
 
     def handle_image_ready(self, url, pixmap):
+        if url == self.bg_image_url:
+            scaled_bg = pixmap.scaled(
+                SCENE_WIDTH, SCENE_HEIGHT,
+                Qt.AspectRatioMode.IgnoreAspectRatio,
+                Qt.TransformationMode.SmoothTransformation
+            )
+            if self.bg_pixmap_item is None:
+                self.bg_pixmap_item = self.scene.addPixmap(scaled_bg)
+                self.bg_pixmap_item.setZValue(-1000)
+            else:
+                self.bg_pixmap_item.setPixmap(scaled_bg)
+
         if url in self.pending_image_requests:
             for item in self.pending_image_requests[url]:
                 item.set_pixmap(pixmap)
 
-        del self.pending_image_requests[url]
+            del self.pending_image_requests[url]
 
 
     def on_image_error(self,url, error_msg):
         print(f"Failed to load {url} - Error: {error_msg}")
 
+    def prompt_background_image(self):
+        url, ok = QInputDialog.getText(
+            self, "Set Background", "Enter Background Image URL:",
+            text = self.bg_image_url
+        )
+        if ok:
+            self.bg_image_url = url.strip()
+            if self.bg_image_url:
+                self.image_fetcher.fetch(self.bg_image_url)
+            else:
+                if self.bg_pixmap_item:
+                    self.scene.removeItem(self.bg_pixmap_item)
+                    self.bg_pixmap_item = None
 
     def check_monitor_size(self):
         screens = QGuiApplication.screens()
@@ -173,6 +204,7 @@ class LayoutBuilder(QMainWindow):
         final_height = min(target_height, max_height)
 
         return final_width, final_height
+
 
     def create_new_button(self):
 
@@ -238,11 +270,14 @@ class LayoutBuilder(QMainWindow):
         btn.update()
 
     def save_layout(self):
-        buttons = []
+        layout_data = {
+            "background image": self.bg_image_url,
+            "buttons": [],
+            "images": []
+        }
         for item in self.scene.items():
             if isinstance(item, CustomButton):
-                buttons.append(
-                    {
+                btn_data = {
                         "type": item.button_type,
                         "text": item.text,
                         "textColor": item.font_color.name(),
@@ -253,20 +288,24 @@ class LayoutBuilder(QMainWindow):
                         "yOffset": item.pos().y() / SCENE_HEIGHT,
                         "shape": item.button_shape,
                         "color": item.color.name(),
-                        "imageURL": "",
+                        "imageURL": item.image_url,
                         "rounding": item.rounding,
                         "padding": 0
                     }
-                )
-        data = {
-            "background image": "",
-            "buttons": buttons,
-            "images": []
-        }
+                layout_data["buttons"].append(btn_data)
+            elif isinstance(item, CustomImageItem):
+                img_data = {
+                    "width": item.item_w,
+                    "height": item.item_h,
+                    "xOffset": round(item.x() / SCENE_WIDTH, 4),
+                    "yOffset": round(item.y() / SCENE_HEIGHT, 4),
+                    "imageURL": item.image_url
+                }
+                layout_data["images"].append(img_data)
         path, _ = QFileDialog.getSaveFileName(self, "Save Layout", "", "JSON files (*.json)")
         if path:
             with open(path, "w") as file:
-                json.dump(data, file, indent=2)
+                json.dump(layout_data, file, indent=2)
 
     def load_layout(self):
         path, _ = QFileDialog.getOpenFileName(self, "Load Layout", "", "JSON files (*.json)")
