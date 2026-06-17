@@ -6,11 +6,10 @@ def get_main_window_steps(ui):
         (ui.send_file_button,    "Send Layout File",    "Sends a JSON button-layout file to the connected phone. Layout files can be created in the UI builder"),
         (ui.builder_button,      "UI Builder",          "Opens the drag-and-drop layout editor to design phone button layouts."),
         (ui.trail_group, "GPX Generation", "This section is used for random trail generation for apps such as Strava. "),
-        (ui.map_view,            "Trail Map",           "Click on the map to drop a destination pin before starting a trail."),
+        (ui.map_view,            "Trail Map",           "Click on the map to drop a start pin before starting a trail."),
         (ui.start_trail_button,  "Start Trail",         "Begins recording a GPX trail from the pinned start point."),
         (ui.stop_trail_button,   "Stop & Save Trail",   "Ends recording and prompts you to save the trail as a .gpx file."),
         (ui.emulation_toggle,    "Xbox Emulation",      "Toggle virtual Xbox controller emulation on or off. If playing a game that is using the API, it is recommended not to use this settings as the two inputs may conflict with each other."),
-        (ui.config_mapper_button,"Config Mapper",       "Configure the mapping of android inputs to Xbox controller inputs. "),
         (ui.monitor_dropdown,    "Monitor Select",      "Choose which monitor is captured for screenshot actions."),
     ]
 
@@ -30,5 +29,8 @@ def get_ui_builder_steps(ui):
         (ui._delete_btn, "Delete Selected Button", "Delete the selected button"),
         (ui._screenshot_btn, "Add the Special Screenshot button", "This adds the special button: Screenshot to your layout. This button's text cannot be edited. This button will tell the PC server to save a screenshot."),
         (ui._pause_btn, "Add the Special Pause Button", "This adds the special button: Pause to your layout. This button's text cannot be edited. This button will tell the PC server to pause."),
-
+        (ui._image_btn, "Add an Image", "Add an image by providing a downloadable URL"),
+        (ui._bg_btn, "Add Background Image", "Add Background image by providing a downloadable URL"),
+        (ui._mapper_btn, "Open Xbox Mapper", "Configure the mapping of android inputs to Xbox controller inputs."),
+        (ui._replay_btn, "Replay Tutorial", "Replay the tutorial by clicking this button whenever you wish."),
     ]

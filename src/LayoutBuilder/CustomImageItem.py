@@ -1,6 +1,6 @@
 from PySide6.QtCore import QRectF
 from PySide6.QtGui import QPainter, Qt, QPen
-from ResizableGraphicsItem import ResizableGraphicsItem
+from src.LayoutBuilder.ResizableGraphicsItem import ResizableGraphicsItem
 
 class CustomImageItem(ResizableGraphicsItem):
     def __init__(self, x, y, width, height, parent=None):

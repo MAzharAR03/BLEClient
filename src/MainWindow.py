@@ -136,17 +136,17 @@ class ServerGUI(QMainWindow):
         self.emulation_toggle.setChecked(ble_module.EMULATION)
         self.emulation_toggle.stateChanged.connect(self.on_emulation_toggled)
 
-        self.config_mapper_button = QPushButton("Open Config Mapper")
-        self.config_mapper_button.clicked.connect(self.on_config_mapper_clicked)
-
         self.monitor_dropdown = QComboBox()
         self.populate_monitors()
         self.monitor_dropdown.currentIndexChanged.connect(self.on_monitor_changed)
 
+        self.replay_tutorial_button = QPushButton("Replay Tutorial")
+        self.replay_tutorial_button.clicked.connect(self._run_tutorial)
+
         settings_layout.addWidget(self.emulation_toggle)
-        settings_layout.addWidget(self.config_mapper_button)
         settings_layout.addWidget((QLabel("Select Monitor to Screenshot:")))
         settings_layout.addWidget(self.monitor_dropdown)
+        settings_layout.addWidget(self.replay_tutorial_button)
 
         settings_group.setLayout(settings_layout)
         layout.addWidget(settings_group)

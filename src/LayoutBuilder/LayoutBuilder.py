@@ -13,7 +13,7 @@ from src.LayoutBuilder.ImageNetworkManager import ImageNetworkManager
 from src.LayoutBuilder.PropertiesSidebar import PropertiesSidebar
 from src.TutorialOverlay import TutorialOverlay
 from src.TutorialSteps import get_ui_builder_steps
-
+from src.XboxMapper.ConfigMapper import ConfigMapper
 from src.config import SCENE_WIDTH, SCENE_HEIGHT, ASPECT_RATIO, TOOLBAR_HEIGHT, DOCK_WIDTH
 
 class ViewContainer(QWidget):
@@ -103,6 +103,16 @@ class LayoutBuilder(QMainWindow):
         set_bg_action.triggered.connect(self.prompt_background_image)
         self._bg_btn = self.toolbar.widgetForAction(set_bg_action)
 
+        self.toolbar.addSeparator()
+        open_mapper_action = self.toolbar.addAction("Open Xbox Mapper")
+        open_mapper_action.triggered.connect(self._open_config_mapper)
+        self._mapper_btn = self.toolbar.widgetForAction(open_mapper_action)
+
+        self.toolbar.addSeparator()
+        replay_tutorial_action = self.toolbar.addAction("Replay Tutorial")
+        replay_tutorial_action.triggered.connect(self._run_tutorial)
+        self._replay_btn = self.toolbar.widgetForAction(replay_tutorial_action)
+
         self.dock = QDockWidget("Properties", self)
         self.dock.setAllowedAreas(Qt.DockWidgetArea.RightDockWidgetArea)
         self.dock.setMinimumWidth(DOCK_WIDTH)
@@ -123,6 +133,11 @@ class LayoutBuilder(QMainWindow):
         self.sidebar.image_url_input.editingFinished.connect(self.on_url_entered)
 
         self._maybe_show_tutorial()
+
+    def _open_config_mapper(self):
+
+        self._config_mapper = ConfigMapper()
+        self._config_mapper.show()
 
     def add_image_item(self):
         img_item = CustomImageItem(100, 100, 150, 150)
@@ -240,34 +255,41 @@ class LayoutBuilder(QMainWindow):
 
     def apply_sidebar_to_selected(self):
         selected = self.scene.selectedItems()
-        if not selected or not isinstance(selected[0], CustomButton):
+        selected = self.scene.selectedItems()
+        if not selected:
             return
 
-        btn = selected[0]
-        btn.prepareGeometryChange()
-        btn.setPos(self.sidebar.x_spin.value(), self.sidebar.y_spin.value())
-        btn.button_w = self.sidebar.width_spin.value()
-        btn.button_h = self.sidebar.height_spin.value()
-        btn.button_shape = {
+        item = selected[0]
+
+        item.prepareGeometryChange()
+        item.setPos(self.sidebar.x_spin.value(), self.sidebar.y_spin.value())
+        item.item_w = self.sidebar.width_spin.value()
+        item.item_h = self.sidebar.height_spin.value()
+        for handle in item.handles:
+            handle.update_position()
+        item.update()
+
+        if not isinstance(item, CustomButton):
+            return
+        item.button_shape = {
             "Rectangle": CustomButton.RECT,
             "Rounded Rectangle": CustomButton.ROUNDED_RECT,
             "Circle": CustomButton.CIRCLE
         }[self.sidebar.shape_combo.currentText()]
-        btn.rounding = self.sidebar.radius_spin.value()
+        item.rounding = self.sidebar.radius_spin.value()
         color = QColor(self.sidebar.color_input.text())
         if color.isValid():
-            btn.color = color
-            btn.update()
-        btn.text = self.sidebar.text_input.text()
+            item.color = color
+            item.update()
+        item.text = self.sidebar.text_input.text()
         font_color = QColor(self.sidebar.font_color_input.text())
         if font_color.isValid():
-            btn.font_color = font_color
-        btn.font_size = self.sidebar.font_size_spin.value()
-        # btn.xbox_button = self.sidebar.xbox_combo.currentText()
+            item.font_color = font_color
+        item.font_size = self.sidebar.font_size_spin.value()
 
-        for handle in btn.handles:
+        for handle in item.handles:
             handle.update_position()
-        btn.update()
+        item.update()
 
     def save_layout(self):
         layout_data = {

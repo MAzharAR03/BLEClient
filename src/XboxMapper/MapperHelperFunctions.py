@@ -1,4 +1,4 @@
-from XboxDictionary import XBOX_CONTROLS, JOYSTICK_KEYS, ALWAYS_AVAILABLE, FLOAT_INPUTS
+from src.XboxMapper.XboxDictionary import XBOX_CONTROLS, JOYSTICK_KEYS, ALWAYS_AVAILABLE, FLOAT_INPUTS
 
 
 def get_android_inputs(layout: dict) -> list[str]:

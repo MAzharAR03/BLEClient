@@ -7,11 +7,11 @@ from PySide6.QtWidgets import QMainWindow, QVBoxLayout, QWidget, QHBoxLayout, QL
     QFileDialog, QMessageBox, QTextEdit, QDialog, QApplication
 
 from src import AppSettings
-from MapperHelperFunctions import rows_to_config, config_to_rows, get_android_inputs
-from RowWidget import RowWidget
+from src.XboxMapper.MapperHelperFunctions import rows_to_config, config_to_rows, get_android_inputs
+from src.XboxMapper.RowWidget import RowWidget
 from src.TutorialOverlay import TutorialOverlay
 from src.TutorialSteps import  get_config_mapper_steps
-from XboxDictionary import XBOX_CONTROLS, ALWAYS_AVAILABLE, FLOAT_INPUTS
+from src.XboxMapper.XboxDictionary import XBOX_CONTROLS, ALWAYS_AVAILABLE, FLOAT_INPUTS
 
 
 class ConfigMapper(QMainWindow):
@@ -74,6 +74,15 @@ class ConfigMapper(QMainWindow):
             toolbar_layout.addWidget(button)
             self._toolbar_buttons[text] = button
 
+        replay_btn = QPushButton("Tutorial")
+        replay_btn.setStyleSheet(
+            "QPushButton { color: white; background: #2d2d54; border: 1px solid #4a4a8a;"
+            " border-radius: 4px; padding: 4px 12px; }"
+            "QPushButton:hover { background: #3d3d74; }"
+        )
+        replay_btn.clicked.connect(self._run_tutorial)
+        toolbar_layout.addWidget(replay_btn)
+        self._toolbar_buttons["Tutorial"] = replay_btn
         root.addWidget(toolbar)
 
         self._status_label = QLabel("No layout loaded: showing default inputs")
