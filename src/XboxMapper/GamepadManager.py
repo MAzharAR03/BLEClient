@@ -3,7 +3,7 @@ import json
 import vgamepad as vg
 
 from ReadFile import read_file_b
-from Mapper import apply_control
+from src.XboxMapper.Mapper import apply_control
 
 class GamepadManager:
     def __init__(self, config_path = "config.json"):

@@ -1,5 +1,4 @@
 import asyncio
-import json
 import os
 import sys
 
@@ -9,19 +8,19 @@ from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QGroupBox, QPushButton, QListWidget, QLabel, QCheckBox, \
-    QMessageBox, QFileDialog, QApplication, QListWidgetItem, QComboBox, QDoubleSpinBox
+    QMessageBox, QFileDialog, QApplication, QListWidgetItem, QComboBox
 from bleak import BleakScanner
 import mss
 
 import AppSettings
 import DeviceBLE as ble_module
-from ConfigMapper import ConfigMapper
+from src.XboxMapper.ConfigMapper import ConfigMapper
 from DeviceBLE import DeviceBLE, INPUT_SERVICE_UUID
-from GPXManager import GPXManager
-from MapBridge import MapBridge
+from src.GPX.GPXManager import GPXManager
+from src.GPX.MapBridge import MapBridge
 from ReadFile import read_file
 from TutorialSteps import get_main_window_steps
-from UIBuilder import LayoutBuilder
+from src.LayoutBuilder.LayoutBuilder import LayoutBuilder
 from TutorialOverlay import TutorialOverlay
 
 SETTINGS_FILE = os.path.join(os.path.dirname(__file__), "settings.json")

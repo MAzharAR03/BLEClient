@@ -6,10 +6,10 @@ from PySide6.QtWidgets import QGraphicsItem
 class ResizeHandle(QGraphicsItem):
     SIZE = 8
 
-    def __init__(self, corner, parent_button):
-        super().__init__(parent_button)
+    def __init__(self, corner, parent_item):
+        super().__init__(parent_item)
         self.corner = corner
-        self.parent_button = parent_button
+        self.parent_item = parent_item
         self.setAcceptHoverEvents(True)
         self.setZValue(10)
         self._dragging = False
@@ -26,8 +26,8 @@ class ResizeHandle(QGraphicsItem):
         painter.drawRect(QRectF(-s /2, -s /2, s, s))
 
     def update_position(self):
-        button = self.parent_button
-        w, h = button.button_w, button.button_h
+        item = self.parent_item
+        w, h = item.item_w, item.item_h
         corners = {
             "tl":QPointF(0,0),
             "tr":QPointF(w,0),
@@ -54,10 +54,10 @@ class ResizeHandle(QGraphicsItem):
         if event.button() == Qt.MouseButton.LeftButton:
             self._dragging = True
             self._start_scene_pos = event.scenePos()
-            btn = self.parent_button
-            self._start_w = btn.button_w
-            self._start_h = btn.button_h
-            self._start_btn_pos = btn.pos()
+            item = self.parent_item
+            self._start_w = item.item_w
+            self._start_h = item.item_h
+            self._start_item_pos = item.pos()
             event.accept()
         else:
             super().mousePressEvent()
@@ -68,38 +68,38 @@ class ResizeHandle(QGraphicsItem):
             return
 
         delta = event.scenePos() - self._start_scene_pos
-        btn = self.parent_button
-        btn.prepareGeometryChange()
+        item = self.parent_item
+        item.prepareGeometryChange()
 
         min_size = 20
         sw, sh = self._start_w, self._start_h
-        bx, by = self._start_btn_pos.x(), self._start_btn_pos.y()
+        bx, by = self._start_item_pos.x(), self._start_item_pos.y()
 
         if self.corner == "br":
-            btn.button_w = max(min_size, sw + delta.x())
-            btn.button_h = max(min_size, sh + delta.y())
+            item.item_w = max(min_size, sw + delta.x())
+            item.item_h = max(min_size, sh + delta.y())
         elif self.corner == "bl":
             new_w = max(min_size, sw - delta.x())
-            btn.setPos(bx + (sw - new_w),by)
-            btn.button_w = new_w
-            btn.button_h = max(min_size, sh + delta.y())
+            item.setPos(bx + (sw - new_w),by)
+            item.item_w = new_w
+            item.item_h = max(min_size, sh + delta.y())
         elif self.corner == "tr":
             new_h = max(min_size, sh - delta.y())
-            btn.setPos(bx, by + (sh - new_h))
-            btn.button_w = max(min_size, sw + delta.x())
-            btn.button_h = new_h
+            item.setPos(bx, by + (sh - new_h))
+            item.item_w = max(min_size, sw + delta.x())
+            item.item_h = new_h
         elif self.corner == "tl":
             new_w = max(min_size, sw - delta.x())
             new_h = max(min_size, sh - delta.y())
-            btn.setPos(bx + (sw - new_w), by + (sh - new_h))
-            btn.button_w = new_w
-            btn.button_h = new_h
+            item.setPos(bx + (sw - new_w), by + (sh - new_h))
+            item.item_w = new_w
+            item.item_h = new_h
 
-        for handle in btn.handles:
+        for handle in item.handles:
             handle.update_position()
-        btn.update()
-        if btn.on_moved:
-            btn.on_moved()
+        item.update()
+        if item.on_moved:
+            item.on_moved()
         event.accept()
 
     def mouseReleaseEvent(self, event):

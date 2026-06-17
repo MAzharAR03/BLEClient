@@ -3,7 +3,7 @@ import os
 from datetime import datetime
 import mss
 import mss.tools
-from bleak import BleakScanner, BleakClient
+from bleak import BleakClient
 import crcmod.predefined as crc
 
 from ReadFile import read_file_b
@@ -17,10 +17,10 @@ HEARTBEAT_UUID = "a5307aef-3109-42f7-b79e-a493856823ba"
 STEP_UUID = "c36f600d-a202-48cd-a839-7577abea4b1f"
 EMULATION = True
 
-from GamepadManager import GamepadManager
+from src.XboxMapper.GamepadManager import GamepadManager
 from SocketHandler import SocketHandler
-from GetScreenshotsDir import get_screenshots_dir
-from ScreenshotHelper import save_screenshot_with_exif
+from src.GPX.GetScreenshotsDir import get_screenshots_dir
+from src.GPX.ScreenshotHelper import save_screenshot_with_exif
 class DeviceBLE:
     def __init__(self, ):
         self.client = None

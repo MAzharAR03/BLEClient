@@ -194,7 +194,7 @@ class ConfigMapper(QMainWindow):
         layout.addLayout(button_row)
 
         def save():
-            path = "config.json"
+            path = "../../config.json"
             with open(path, "w") as f:
                 f.write(output)
             QMessageBox.information(dialog, "Saved", f"Config saved to:\n{path}")

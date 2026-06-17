@@ -1,15 +1,16 @@
 import json
 import sys
 
-from PySide6.QtCore import Qt, QPointF, QRectF, QSize
-from PySide6.QtGui import QBrush, QPen, QPolygonF, QPixmap, QPainter, QFont, QColor, QGuiApplication
-from PySide6.QtWidgets import QGraphicsScene, QGraphicsView, QApplication, QGraphicsRectItem, QGraphicsItem, \
-    QMainWindow, QToolBar, QDockWidget, QWidget, QVBoxLayout, QLabel, QGroupBox, QSpinBox, QFormLayout, QComboBox, \
-    QLineEdit, QFileDialog, QPushButton, QColorDialog
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QColor, QGuiApplication
+from PySide6.QtWidgets import QGraphicsScene, QGraphicsView, QApplication, QMainWindow, QToolBar, QDockWidget, QWidget, \
+    QFileDialog
 
 import AppSettings
-from CustomButton import CustomButton
-from PropertiesSidebar import PropertiesSidebar
+from src.LayoutBuilder.CustomButton import CustomButton
+from src.LayoutBuilder.CustomImageItem import CustomImageItem
+from src.LayoutBuilder.ImageNetworkManager import ImageNetworkManager
+from src.LayoutBuilder.PropertiesSidebar import PropertiesSidebar
 from TutorialOverlay import TutorialOverlay
 from TutorialSteps import get_ui_builder_steps
 
@@ -58,6 +59,12 @@ class LayoutBuilder(QMainWindow):
         self.container = ViewContainer(self.view)
         self.setCentralWidget(self.container)
 
+        self.image_fetcher = ImageNetworkManager(self)
+        self.image_fetcher.image_ready.connect(self.handle_image_ready)
+        self.image_fetcher.error_occurred.connect(self.on_image_error)
+
+        self.pending_image_requests = {}
+
         self.toolbar = QToolBar("Toolbar")
         self.addToolBar(self.toolbar)
         save_action = self.toolbar.addAction("Save Layout")
@@ -86,6 +93,10 @@ class LayoutBuilder(QMainWindow):
         add_pause_action.triggered.connect(lambda: self.create_special_button("pause", "Pause"))
         self._pause_btn = self.toolbar.widgetForAction(add_pause_action)
 
+        add_image_action = self.toolbar.addAction("Add Image")
+        add_image_action.triggered.connect(self.add_image_item)
+        self._image_btn = self.toolbar.widgetForAction(add_image_action)
+
         self.dock = QDockWidget("Properties", self)
         self.dock.setAllowedAreas(Qt.DockWidgetArea.RightDockWidgetArea)
         self.dock.setMinimumWidth(DOCK_WIDTH)
@@ -103,7 +114,53 @@ class LayoutBuilder(QMainWindow):
         self.scene.selectionChanged.connect(self.on_selection_changed)
         self.sidebar.apply_to_selected = self.apply_sidebar_to_selected
 
+        self.sidebar.image_url_input.editingFinished.connect(self.on_url_entered)
+
         self._maybe_show_tutorial()
+
+    def add_image_item(self):
+        img_item = CustomImageItem(100, 100, 150, 150)
+        img_item.on_moved = lambda b=img_item: self.sidebar.populate(b)
+
+        self.scene.addItem(img_item)
+
+    def on_url_entered(self):
+        if self.sidebar._updating:
+            return
+
+        item = self.sidebar.current_item
+        if not item or not hasattr(item, "image_url"):
+            return
+
+        url = self.sidebar.image_url_input.text().strip()
+        item.image_url = url
+
+        if url:
+            self.request_image_for_item(item, url)
+        else:
+            item.set_pixmap(None)
+
+    def request_image_for_item(self, item, url_string):
+        if not url_string:
+            return
+
+        if url_string in self.pending_image_requests:
+            self.pending_image_requests[url_string].append(item)
+        else:
+            self.pending_image_requests[url_string] = [item]
+            self.image_fetcher.fetch(url_string)
+
+    def handle_image_ready(self, url, pixmap):
+        if url in self.pending_image_requests:
+            for item in self.pending_image_requests[url]:
+                item.set_pixmap(pixmap)
+
+        del self.pending_image_requests[url]
+
+
+    def on_image_error(self,url, error_msg):
+        print(f"Failed to load {url} - Error: {error_msg}")
+
 
     def check_monitor_size(self):
         screens = QGuiApplication.screens()
@@ -190,8 +247,8 @@ class LayoutBuilder(QMainWindow):
                         "text": item.text,
                         "textColor": item.font_color.name(),
                         "textFontSize": item.font_size,
-                        "width": item.button_w / SCENE_WIDTH,
-                        "height": item.button_h / SCENE_HEIGHT,
+                        "width": item.item_w / SCENE_WIDTH,
+                        "height": item.item_h / SCENE_HEIGHT,
                         "xOffset": item.pos().x() / SCENE_WIDTH,
                         "yOffset": item.pos().y() / SCENE_HEIGHT,
                         "shape": item.button_shape,

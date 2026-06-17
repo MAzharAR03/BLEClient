@@ -1,14 +1,15 @@
 from PySide6.QtGui import QColor, Qt
 from PySide6.QtWidgets import QWidget, QColorDialog, QComboBox, QFormLayout, QGroupBox, QSpinBox, QPushButton, \
-    QLineEdit, QVBoxLayout, QSlider, QScrollArea
+    QLineEdit, QVBoxLayout, QScrollArea
 
-from CustomButton import CustomButton
+from src.LayoutBuilder.CustomButton import CustomButton
 from config import SCENE_HEIGHT, SCENE_WIDTH
 
 class PropertiesSidebar(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._updating = False
+        self.current_item = None
         self._inner = QWidget()
         layout = QVBoxLayout(self._inner)
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
@@ -61,7 +62,6 @@ class PropertiesSidebar(QWidget):
 
         color_group.setLayout(color_form)
 
-
         label_group = QGroupBox("Label")
         label_form = QFormLayout()
         self.text_input = QLineEdit()
@@ -83,42 +83,19 @@ class PropertiesSidebar(QWidget):
         label_form.addRow("Font Size", self.font_size_spin)
         label_group.setLayout(label_form)
 
-
-        # #Add triggers and joystick, add joystick button, add direction and value for triggers and joystick
-        # xbox_group = QGroupBox("Xbox Mapping")
-        # xbox_form = QFormLayout()
-        # self.xbox_combo = QComboBox()
-        # self.xbox_combo.addItems([
-        #     "None",
-        #     "A",
-        #     "B",
-        #     "X",
-        #     "Y",
-        #     "LB",
-        #     "RB",
-        #     "LT",
-        #     "RT",
-        #     "Up",
-        #     "Down",
-        #     "Left",
-        #     "Right",
-        #     "Left Analog",
-        #     "Right Analog"
-        # ])
-        # xbox_form.addRow("Xbox Button", self.xbox_combo)
-        # xbox_group.setLayout(xbox_form)
-        #
-        # self.trigger_group = QGroupBox("Trigger Config")
-        # trigger_form = QFormLayout()
-        # self.trigger_scale_slider = QSlider(Qt.Orientation.Horizontal)
-        # self.trigger_sc
+        image_group = QGroupBox("Image")
+        image_form = QFormLayout()
+        self.image_url_input = QLineEdit()
+        self.image_url_input.setPlaceholderText("https://example.com/image.jpg")
+        image_form.addRow("URL:", self.image_url_input)
+        image_group.setLayout(image_form)
 
         layout.addWidget(pos_group)
         layout.addWidget(size_group)
         layout.addWidget(shape_group)
         layout.addWidget(color_group)
         layout.addWidget(label_group)
-        # layout.addWidget(xbox_group)
+        layout.addWidget(image_group)
         layout.addStretch()
 
         scroll = QScrollArea()
@@ -141,30 +118,57 @@ class PropertiesSidebar(QWidget):
         self.font_size_spin.valueChanged.connect(self.on_property_changed)
         # self.xbox_combo.currentTextChanged.connect(self.on_property_changed)
 
-    def populate(self, button: CustomButton):
+    def populate(self, item):
         self._updating = True
-        self.x_spin.setValue(int(button.pos().x()))
-        self.y_spin.setValue(int(button.pos().y()))
-        self.width_spin.setValue(int(button.button_w))
-        self.height_spin.setValue(int(button.button_h))
-        self.shape_combo.setCurrentText(
-            {
-                CustomButton.RECT: "Rectangle",
-                CustomButton.ROUNDED_RECT: "Rounded Rectangle",
-                CustomButton.CIRCLE: "Circle"
-            }[button.button_shape]
-        )
-        self.radius_spin.setValue(button.rounding)
-        self.color_input.setText(QColor(button.color).name())
+        self.current_item = item
+        self.x_spin.setValue(int(item.pos().x()))
+        self.y_spin.setValue(int(item.pos().y()))
+        self.width_spin.setValue(int(item.item_w))
+        self.height_spin.setValue(int(item.item_h))
 
-        self.text_input.setText(button.text)
-        is_special = button.button_type != "regular"
-        self.text_input.setReadOnly(is_special)
-        self.text_input.setEnabled(not is_special)
+        is_button = isinstance(item, CustomButton)
+        self.shape_combo.setEnabled(is_button)
+        self.radius_spin.setEnabled(is_button)
+        self.color_input.setEnabled(is_button)
+        self.font_color_input.setEnabled(is_button)
+        self.font_size_spin.setEnabled(is_button)
+        self.color_pick_btn.setEnabled(is_button)
+        self.font_color_pick_btn.setEnabled(is_button)
 
-        self.font_color_input.setText(QColor(button.font_color).name())
-        self.font_size_spin.setValue(button.font_size)
-        #self.xbox_combo.setCurrentText(button.xbox_button)
+        if is_button:
+            is_special = item.button_type != "regular"
+            self.text_input.setReadOnly(is_special)
+            self.text_input.setEnabled(not is_special)
+        else:
+            self.text_input.setReadOnly(True)
+            self.text_input.setEnabled(False)
+
+        if is_button:
+            self.shape_combo.setCurrentText(
+                {
+                    CustomButton.RECT: "Rectangle",
+                    CustomButton.ROUNDED_RECT: "Rounded Rectangle",
+                    CustomButton.CIRCLE: "Circle"
+                }[item.button_shape]
+            )
+            self.radius_spin.setValue(item.rounding)
+            self.color_input.setText(QColor(item.color).name())
+            self.text_input.setText(item.text)
+            is_special = item.button_type != "regular"
+            self.text_input.setReadOnly(is_special)
+            self.text_input.setEnabled(not is_special)
+            self.font_color_input.setText(QColor(item.font_color).name())
+            self.font_size_spin.setValue(item.font_size)
+        else:
+            self.text_input.setText("N/A")
+            self.color_input.setText("N/A")
+
+        if hasattr(item, "image_url"):
+            self.image_url_input.setText(item.image_url)
+            self.image_url_input.setEnabled(True)
+        else:
+            self.image_url_input.setText("")
+            self.image_url_input.setEnabled(False)
 
         self._updating = False
 

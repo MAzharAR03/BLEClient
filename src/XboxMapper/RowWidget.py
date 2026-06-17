@@ -1,8 +1,8 @@
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QLabel, QPushButton, QDialog
 
-from InputPickerDialog import InputPickerDialog
-from ChipWidget import ChipWidget
+from src.XboxMapper.InputPickerDialog import InputPickerDialog
+from src.XboxMapper.ChipWidget import ChipWidget
 
 
 class RowWidget(QWidget):
