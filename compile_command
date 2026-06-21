@@ -1,1 +1,2 @@
 pyinstaller --noconsole --onefile --name Server --collect-data vgamepad MainWindow.py
+pyinstaller  --onefile --name Server --collect-data vgamepad --paths=. MainWindow.py

@@ -5,6 +5,7 @@ import vgamepad as vg
 from src.ReadFile import read_file_b
 from src.XboxMapper.Mapper import apply_control
 
+
 class GamepadManager:
     def __init__(self, config_path = "config.cfg"):
         self.gamepad = vg.VX360Gamepad()

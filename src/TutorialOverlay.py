@@ -1,6 +1,6 @@
-from PySide6.QtWidgets import QWidget, QPushButton, QLabel, QVBoxLayout
 from PySide6.QtCore import Qt, QRect, QPoint, QRectF
-from PySide6.QtGui import QPainter, QColor, QPainterPath, QFont, QPen
+from PySide6.QtGui import QPainter, QColor, QPainterPath, QPen
+from PySide6.QtWidgets import QWidget, QPushButton, QLabel, QVBoxLayout
 
 
 class TutorialOverlay(QWidget):

@@ -5,6 +5,7 @@ from PySide6.QtWidgets import QWidget, QColorDialog, QComboBox, QFormLayout, QGr
 from src.LayoutBuilder.CustomButton import CustomButton
 from src.config import SCENE_HEIGHT, SCENE_WIDTH
 
+
 class PropertiesSidebar(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)

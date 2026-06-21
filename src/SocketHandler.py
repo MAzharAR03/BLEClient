@@ -1,4 +1,5 @@
 import asyncio
+
 import websockets
 
 
@@ -18,7 +19,13 @@ class SocketHandler:
 
         async def receiver():
             async for message in websocket:
-                filename = "../layout.layout"
+                if message.startswith("CONTROL:"):
+                    command = message [len("CONTROL:"):]
+                    if self.ble_device.on_control_message:
+                        self.ble_device.on_control_message(command)
+                    continue
+
+                filename = "layout.layout"
                 with open(filename,"w") as f:
                     f.write(message)
                 print("JSON file received")

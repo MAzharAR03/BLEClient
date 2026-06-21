@@ -1,6 +1,8 @@
 from PySide6.QtCore import QRectF
 from PySide6.QtWidgets import QGraphicsItem
+
 from src.LayoutBuilder.ResizeHandle import ResizeHandle
+
 
 class ResizableGraphicsItem(QGraphicsItem):
     def __init__(self, x, y, width, height, parent = None):

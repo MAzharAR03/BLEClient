@@ -1,12 +1,15 @@
 import asyncio
+import json
 import os
 from datetime import datetime
+
+import crcmod.predefined as crc
 import mss
 import mss.tools
 from bleak import BleakClient
-import crcmod.predefined as crc
 
 from ReadFile import read_file_b
+
 INPUT_SERVICE_UUID = "0000feed-0000-1000-8000-00805f9b34fb"
 INPUT_CHAR_UUID = "0000beef-0000-1000-8000-00805f9b34fb"
 FILE_TRANSFER_CHAR_UUID = "efcdbf7b-fee2-489b-8f79-b649aa50619b"
@@ -41,6 +44,7 @@ class DeviceBLE:
         self._disconnected = False
         self.latest_heartbeat = None
         self.gpx_manager = None
+        self.on_control_message = None
 
     async def connect(self):
         self.loop = asyncio.get_event_loop()
@@ -52,8 +56,9 @@ class DeviceBLE:
                 await self.client.connect()
 
                 print("Connected")
-            except:
-                raise Exception("Failed to connect")
+            except Exception as e:
+                self.client = None
+                raise Exception(f"Failed to connect: {e}")
         else:
             raise Exception("Did not find available devices")
 
@@ -113,6 +118,7 @@ class DeviceBLE:
                 print(f"Error, characteristic {self.uuid_input_characteristic} not found in discovered services.")
 
     def screenshot_handler(self, sender, data):
+        self.socketHandler.addMessage(json.dumps({"type": "screenshot"}))
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         screenshots_dir = get_screenshots_dir()
 
@@ -133,7 +139,7 @@ class DeviceBLE:
         self.latest_heartbeat = data.decode('utf-8')
 
     def pause_handler(self, sender, data):
-        self.socketHandler.addMessage(data)
+        self.socketHandler.addMessage(json.dumps({"type": "pause"}))
         print("Pause triggered")
 
     def step_handler(self, sender, data):

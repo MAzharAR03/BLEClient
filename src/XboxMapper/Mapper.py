@@ -1,5 +1,6 @@
-import vgamepad as vg
 from enum import Enum
+
+import vgamepad as vg
 
 
 #Gamepad controls are split into 3, as these options all take different parameters to control

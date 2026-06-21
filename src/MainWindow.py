@@ -2,6 +2,7 @@ import asyncio
 import os
 import sys
 
+import mss
 import qasync
 import websockets
 from PySide6.QtCore import Qt, QTimer
@@ -10,18 +11,17 @@ from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QGroupBox, QPushButton, QListWidget, QLabel, QCheckBox, \
     QMessageBox, QFileDialog, QApplication, QListWidgetItem, QComboBox
 from bleak import BleakScanner
-import mss
 
-from src import AppSettings
+import AppSettings
 import DeviceBLE as ble_module
-from src.XboxMapper.ConfigMapper import ConfigMapper
 from DeviceBLE import DeviceBLE, INPUT_SERVICE_UUID
+from ReadFile import read_file, resource_path
+from TutorialOverlay import TutorialOverlay
+from TutorialSteps import get_main_window_steps
 from src.GPX.GPXManager import GPXManager
 from src.GPX.MapBridge import MapBridge
-from ReadFile import read_file
-from TutorialSteps import get_main_window_steps
 from src.LayoutBuilder.LayoutBuilder import LayoutBuilder
-from TutorialOverlay import TutorialOverlay
+from src.XboxMapper.ConfigMapper import ConfigMapper
 
 SETTINGS_FILE = os.path.join(os.path.dirname(__file__), "settings.settings")
 
@@ -158,7 +158,7 @@ class ServerGUI(QMainWindow):
             self.start_trail_button.setEnabled(True)
 
     def _find_map(self):
-        map_html = read_file("../map.html")
+        map_html = read_file(resource_path("map.html"))
         return map_html
 
     def set_status(self, text, state = "idle"):
@@ -228,6 +228,7 @@ class ServerGUI(QMainWindow):
         device = DeviceBLE()
         device.address = address
         device.on_disconnect = self.on_device_disconnected
+        device.on_control_message = self.on_remote_control_message
         try:
 
             await device.connect()
@@ -267,6 +268,11 @@ class ServerGUI(QMainWindow):
         except Exception as e:
             self.status_label.setText(f"Status: Error -{e}")
 
+    def on_remote_control_message(self, command):
+        if command == "DISABLE_EMULATION":
+            self.emulation_toggle.setChecked(False)
+        elif command == "ENABLE_EMULATION":
+            self.emulation_toggle.setChecked(True)
 
     def on_scan_button_clicked(self):
         asyncio.create_task(self.scan_for_devices())

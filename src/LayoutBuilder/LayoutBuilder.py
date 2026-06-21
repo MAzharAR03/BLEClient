@@ -16,6 +16,7 @@ from src.TutorialSteps import get_ui_builder_steps
 from src.XboxMapper.ConfigMapper import ConfigMapper
 from src.config import SCENE_WIDTH, SCENE_HEIGHT, ASPECT_RATIO, TOOLBAR_HEIGHT, DOCK_WIDTH
 
+
 class ViewContainer(QWidget):
     def __init__(self, view, parent = None):
         super().__init__(parent)
@@ -91,9 +92,13 @@ class LayoutBuilder(QMainWindow):
         add_screenshot_action.triggered.connect(lambda: self.create_special_button("screenshot", "Screenshot"))
         self._screenshot_btn = self.toolbar.widgetForAction(add_screenshot_action)
 
-        add_pause_action = self.toolbar.addAction("Add Pause Action")
+        add_pause_action = self.toolbar.addAction("Add Pause Button")
         add_pause_action.triggered.connect(lambda: self.create_special_button("pause", "Pause"))
         self._pause_btn = self.toolbar.widgetForAction(add_pause_action)
+
+        add_recenter_action = self.toolbar.addAction("Add Recenter Action")
+        add_recenter_action.triggered.connect(lambda: self.create_special_button("recenter","Recenter"))
+        self._recenter_btn = self.toolbar.widgetForAction(add_recenter_action)
 
         add_image_action = self.toolbar.addAction("Add Image")
         add_image_action.triggered.connect(self.add_image_item)
@@ -112,6 +117,7 @@ class LayoutBuilder(QMainWindow):
         replay_tutorial_action = self.toolbar.addAction("Replay Tutorial")
         replay_tutorial_action.triggered.connect(self._run_tutorial)
         self._replay_btn = self.toolbar.widgetForAction(replay_tutorial_action)
+
 
         self.dock = QDockWidget("Properties", self)
         self.dock.setAllowedAreas(Qt.DockWidgetArea.RightDockWidgetArea)

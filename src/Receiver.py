@@ -4,6 +4,7 @@ import websockets
 from bleak import BleakScanner
 
 from DeviceBLE import DeviceBLE
+
 INPUT_SERVICE_UUID = "0000feed-0000-1000-8000-00805f9b34fb"
 MAX_PITCH = 1.57079633
 

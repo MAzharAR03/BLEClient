@@ -1,6 +1,8 @@
 import os
+
 import piexif
 from PIL import Image
+
 
 def _to_dms(value):
     d = int(abs(value))

@@ -7,10 +7,10 @@ from PySide6.QtWidgets import QMainWindow, QVBoxLayout, QWidget, QHBoxLayout, QL
     QFileDialog, QMessageBox, QTextEdit, QDialog, QApplication
 
 from src import AppSettings
+from src.TutorialOverlay import TutorialOverlay
+from src.TutorialSteps import get_config_mapper_steps
 from src.XboxMapper.MapperHelperFunctions import rows_to_config, config_to_rows, get_android_inputs
 from src.XboxMapper.RowWidget import RowWidget
-from src.TutorialOverlay import TutorialOverlay
-from src.TutorialSteps import  get_config_mapper_steps
 from src.XboxMapper.XboxDictionary import XBOX_CONTROLS, ALWAYS_AVAILABLE, FLOAT_INPUTS
 
 
@@ -202,7 +202,7 @@ class ConfigMapper(QMainWindow):
         layout.addLayout(button_row)
 
         def save():
-            path = "../../config.cfg"
+            path = "config.cfg"
             with open(path, "w") as f:
                 f.write(output)
             QMessageBox.information(dialog, "Saved", f"Config saved to:\n{path}")

@@ -1,10 +1,10 @@
-from datetime import datetime, timezone
-
 import random
-import gpxpy.gpx
-from math import sin, cos, pi
 from datetime import datetime, timezone
+from math import sin, cos, pi
+
+import gpxpy.gpx
 from haversine import haversine, Unit
+
 SCALE = 0.000007
 ANGLE_VARIABILITY = pi / 7
 

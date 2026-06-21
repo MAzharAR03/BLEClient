@@ -28,6 +28,7 @@ def get_ui_builder_steps(ui):
         (ui._add_btn, "Add a button", "Add a brand new button into the screen"),
         (ui._delete_btn, "Delete Selected Button", "Delete the selected button"),
         (ui._screenshot_btn, "Add the Special Screenshot button", "This adds the special button: Screenshot to your layout. This button's text cannot be edited. This button will tell the PC server to save a screenshot."),
+        (ui._recenter_btn, "Add the Special Recenter Button", "This adds the special button: Recenter to your layout. This button's text cannot be edited. This button will tell your phone to recalculate the zero positions of your tilting phone up and down (Pitch)"),
         (ui._pause_btn, "Add the Special Pause Button", "This adds the special button: Pause to your layout. This button's text cannot be edited. This button will tell the PC server to pause."),
         (ui._image_btn, "Add an Image", "Add an image by providing a downloadable URL"),
         (ui._bg_btn, "Add Background Image", "Add Background image by providing a downloadable URL"),

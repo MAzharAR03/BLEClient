@@ -1,7 +1,9 @@
 import json
 import os
 
-SETTINGS_FILE = os.path.join(os.path.dirname(__file__), "settings.settings")
+from src.ReadFile import resource_path
+
+SETTINGS_FILE = resource_path("settings.settings")
 
 def load():
     try:
