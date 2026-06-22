@@ -59,6 +59,24 @@ class GPXManager:
             )
         )
 
+    def add_point(self, lat, lon):
+        step_distance = haversine(
+            (self._lat, self._lon),
+            (lat, lon),
+            unit=Unit.KILOMETERS
+        )
+        self._total_distance_km += step_distance
+        self._lat = lat
+        self._lon = lon
+
+        self._segment.points.append(
+            gpxpy.gpx.GPXTrackPoint(
+                latitude=lat,
+                longitude=lon,
+                time=datetime.now(timezone.utc)
+            )
+        )
+
     def save(self, filepath):
         with open(filepath, "w") as f:
             f.write(self._gpx.to_xml())

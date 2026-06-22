@@ -44,6 +44,7 @@ class DeviceBLE:
         self._disconnected = False
         self.latest_heartbeat = None
         self.gpx_manager = None
+        self.gpx_external_control = False
         self.on_control_message = None
 
     async def connect(self):
@@ -143,8 +144,11 @@ class DeviceBLE:
         print("Pause triggered")
 
     def step_handler(self, sender, data):
-        if self.gpx_manager is not None:
+        if self.gpx_manager is not None and not self.gpx_external_control:
             self.gpx_manager.on_step()
+        elif self.gpx_external_control:
+            self.socketHandler.addMessage(json.dumps({"type": "step"}))
+
 
     def input_handler(self, sender, data):
         value = data.decode('utf-8')
@@ -167,7 +171,7 @@ class DeviceBLE:
         self.socketHandler.addMessage(value)
 
         print(f"Notification from handle {sender}: {value}")
-        if EMULATION:
+        if EMULATION and self.gamepadManager is not None:
             self.gamepadManager.update_state(value)
 
     def control_handler(self,sender,data):
