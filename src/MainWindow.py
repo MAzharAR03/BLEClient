@@ -18,6 +18,7 @@ from DeviceBLE import DeviceBLE, INPUT_SERVICE_UUID
 from ReadFile import read_file, resource_path
 from TutorialOverlay import TutorialOverlay
 from TutorialSteps import get_main_window_steps
+from src import config
 from src.GPX.GPXManager import GPXManager
 from src.GPX.MapBridge import MapBridge
 from src.LayoutBuilder.LayoutBuilder import LayoutBuilder
@@ -123,6 +124,11 @@ class ServerGUI(QMainWindow):
         self.stop_trail_button.clicked.connect(self.on_stop_trail_clicked)
         self.stop_trail_button.setEnabled(False)
 
+        self.trail_status_label = QLabel("")
+        self.trail_status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.trail_status_label.setStyleSheet("font-size: 11px; color: #888; padding: 4px;")
+        trail_layout.addWidget(self.trail_status_label)
+
         trail_layout.addWidget(self.start_trail_button)
         trail_layout.addWidget(self.stop_trail_button)
         self.trail_group.setLayout(trail_layout)
@@ -133,8 +139,9 @@ class ServerGUI(QMainWindow):
         settings_layout = QVBoxLayout()
 
         self.emulation_toggle = QCheckBox("Enable Xbox Controller Emulation")
-        self.emulation_toggle.setChecked(ble_module.EMULATION)
+        self.emulation_toggle.setChecked(config.emulation_state.enabled)
         self.emulation_toggle.stateChanged.connect(self.on_emulation_toggled)
+        config.emulation_state.changed.connect(self._on_emulation_state_changed)
 
         self.monitor_dropdown = QComboBox()
         self.populate_monitors()
@@ -180,6 +187,26 @@ class ServerGUI(QMainWindow):
                 border-radius: 6px;
             }}
         """)
+
+    def set_trail_state(self, state: str):
+        """state: 'idle' | 'server' | 'engine'"""
+        if state == "idle":
+            self.start_trail_button.setEnabled(
+                bool(self.connected_device and self._map_bridge.position()[0] is not None)
+            )
+            self.stop_trail_button.setEnabled(False)
+            self.trail_status_label.setText("")
+        elif state == "server":
+            self.start_trail_button.setEnabled(False)
+            self.stop_trail_button.setEnabled(True)
+            self.trail_status_label.setText("Trail active (server)")
+            self.trail_status_label.setStyleSheet("font-size: 11px; color: #50d070; padding: 4px;")
+        elif state == "engine":
+            self.start_trail_button.setEnabled(False)
+            self.stop_trail_button.setEnabled(False)
+            self.trail_status_label.setText("⚙ Trail controlled by game engine")
+            self.trail_status_label.setStyleSheet("font-size: 11px; color: #f0c040; padding: 4px;")
+
 
     def on_device_disconnected(self):
         if self._is_shutting_down:
@@ -228,7 +255,7 @@ class ServerGUI(QMainWindow):
         device = DeviceBLE()
         device.address = address
         device.on_disconnect = self.on_device_disconnected
-        device.on_control_message = self.on_remote_control_message
+        device.socketHandler.on_trail_state_changed = self.set_trail_state
         try:
 
             await device.connect()
@@ -268,12 +295,6 @@ class ServerGUI(QMainWindow):
         except Exception as e:
             self.status_label.setText(f"Status: Error -{e}")
 
-    def on_remote_control_message(self, command):
-        if command == "DISABLE_EMULATION":
-            self.emulation_toggle.setChecked(False)
-        elif command == "ENABLE_EMULATION":
-            self.emulation_toggle.setChecked(True)
-
     def on_scan_button_clicked(self):
         asyncio.create_task(self.scan_for_devices())
 
@@ -303,10 +324,14 @@ class ServerGUI(QMainWindow):
         self.builder_window.show()
 
     def on_emulation_toggled(self, state):
-        is_enabled = (state == 2)
-        ble_module.EMULATION = is_enabled
-        state_str = "Enabled" if is_enabled else "Disabled"
-        self.status_label.setText(f"Status: Emulation {state_str}")
+        config.emulation_state.enabled = (state == 2)
+
+    def _on_emulation_state_changed(self, enabled: bool):
+        self.emulation_toggle.blockSignals(True)
+        self.emulation_toggle.setChecked(enabled)
+        self.emulation_toggle.blockSignals(False)
+        state_str = "Enabled" if enabled else "Disabled"
+        self.set_status(f"Emulation {state_str}", "ok" if enabled else "idle")
 
     def populate_monitors(self):
         with mss.MSS() as sct:
@@ -344,6 +369,7 @@ class ServerGUI(QMainWindow):
             self.connected_device.gpx_manager.save(path)
             self.set_status("Trail saved", "ok")
         self.connected_device.gpx_manager = None
+        self.set_trail_state("idle")
         self.stop_trail_button.setEnabled(False)
         self.start_trail_button.setEnabled(True)
 

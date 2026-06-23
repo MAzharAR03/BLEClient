@@ -9,6 +9,7 @@ import mss.tools
 from bleak import BleakClient
 
 from ReadFile import read_file_b
+from src.config import emulation_state
 
 INPUT_SERVICE_UUID = "0000feed-0000-1000-8000-00805f9b34fb"
 INPUT_CHAR_UUID = "0000beef-0000-1000-8000-00805f9b34fb"
@@ -18,12 +19,12 @@ PAUSE_UUID= "446be5b0-93b7-4911-abbe-e4e18d545640"
 SCREENSHOT_UUID = "36d942a6-9e79-4812-8a8f-84a275f6b176"
 HEARTBEAT_UUID = "a5307aef-3109-42f7-b79e-a493856823ba"
 STEP_UUID = "c36f600d-a202-48cd-a839-7577abea4b1f"
-EMULATION = True
 
 from src.XboxMapper.GamepadManager import GamepadManager
 from SocketHandler import SocketHandler
 from src.GPX.GetScreenshotsDir import get_screenshots_dir
 from src.GPX.ScreenshotHelper import save_screenshot_with_exif
+
 class DeviceBLE:
     def __init__(self, ):
         self.client = None
@@ -33,7 +34,7 @@ class DeviceBLE:
         self.uuid_pause_characteristic = PAUSE_UUID
         self.uuid_screenshot_characteristic = SCREENSHOT_UUID
         self.socketHandler = SocketHandler(self)
-        self.gamepadManager = GamepadManager() if EMULATION else None
+        self.gamepadManager = GamepadManager()
         self.buffer = []
         self.expecting_chunks = 0
         self.latest_control_message = None
@@ -170,8 +171,7 @@ class DeviceBLE:
 
         self.socketHandler.addMessage(value)
 
-        print(f"Notification from handle {sender}: {value}")
-        if EMULATION and self.gamepadManager is not None:
+        if emulation_state.enabled and self.gamepadManager is not None:
             self.gamepadManager.update_state(value)
 
     def control_handler(self,sender,data):

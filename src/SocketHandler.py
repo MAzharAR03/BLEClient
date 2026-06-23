@@ -7,6 +7,7 @@ import tempfile
 
 import websockets
 
+from src.config import emulation_state
 from src.GPX.GPXManager import GPXManager
 from src.GPX.ScreenshotHelper import save_screenshot_with_exif
 
@@ -17,7 +18,7 @@ class SocketHandler:
         self.port = 9999
         self.queue = asyncio.Queue()
         self.ble_device = ble_device
-
+        self.on_trail_state_changed = None
 
     async def handle_websocket(self,websocket):
         async def sender():
@@ -27,6 +28,7 @@ class SocketHandler:
 
         async def receiver():
             async for message in websocket:
+                print(f"[receiver] raw message prefix: {message[:60]}")
                 try:
                     data = json.loads(message)
                     msg_type = data.get("type")
@@ -35,22 +37,18 @@ class SocketHandler:
                     data = {"payload": message}
 
                 if msg_type == "layout":
-                    payload = data.get("payload", message)
-                    filename = "../layout.json"
-                    with open(filename, "w") as f:
-                        f.write(payload)
-                    print("JSON file received")
-                    asyncio.create_task(self.ble_device.layout_received(filename))
+                    self.handle_layout(data, message)
 
                 elif msg_type == "control":
                     command = data.get("command")
-                    if self.ble_device.on_control_message:
-                        self.ble_device.on_control_message(command)
-                    continue
+                    if command == "DISABLE_EMULATION":
+                        emulation_state.enabled = False
+                    elif command == "ENABLE_EMULATION":
+                        emulation_state.enabled = True
 
-                    
+
                 elif msg_type == "photo_upload":
-                    asyncio.create_task(self.handle_photo(data,websocket))
+                    asyncio.create_task(self.handle_photo(data))
 
                 elif msg_type == "gpx_point":
                     self.handle_gpx_point(data)
@@ -58,53 +56,62 @@ class SocketHandler:
                 elif msg_type == "gpx_start":
                     self.handle_gpx_start(data)
 
-                elif msg_type == "gpx_end":
-                    self.handle_gpx_end(data)
+                elif msg_type == "gpx_stop":
+                    await self.handle_gpx_stop(data)
 
                 elif msg_type == "gpx_release":
                     self.ble_device.gpx_manager = None
 
-                #update for new message structure
-                if message.startswith("CONTROL:"):
-                    command = message [len("CONTROL:"):]
-                    if self.ble_device.on_control_message:
-                        self.ble_device.on_control_message(command)
-                    continue
+                else:
+                    print(f"[receiver] unhandled message type: {msg_type}")
+
         try:
             await asyncio.gather(sender(),receiver())
         except websockets.ConnectionClosed:
             pass
 
-    async def handle_photo(self, data, websocket):
+    def handle_layout(self,data, raw_message):
+        payload = data.get("payload", raw_message)
+        filename = "layout.layout"
+        with open(filename, "w") as f:
+            f.write(payload)
+        print("Layout file received")
+        asyncio.create_task(self.ble_device.layout_received(filename))
+
+    async def handle_photo(self, data):
+        print("[handle_photo] entered")
         raw_data = data.get("data", "")
         if not raw_data:
             return
 
         img_bytes = base64.b64decode(raw_data)
-        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
         with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
             tmp.write(img_bytes)
             png_path = tmp.name
 
         jpg_path = png_path.replace(".png", ".jpg")
-
+        jpg_b64 = raw_data
         gpx = self.ble_device.gpx_manager
         if gpx is not None:
             lat, lon = gpx.current_position()
-            save_screenshot_with_exif(png_path, jpg_path, lat, lon)
-            with open(jpg_path, "rb") as f:
-                jpg_b64 = base64.b64encode(f.read()).decode("utf-8")
-            os.remove(jpg_path)
-        else:
-            jpg_b64 = raw_data
+            print(f"[handle_photo] tagging with GPS {lat},{lon}")
+            try:
+                save_screenshot_with_exif(png_path, jpg_path, lat, lon)
+                print("[handle_photo] exif save done")
+            except Exception as e:
+                print(f"[handle_photo] exif failed: {e}")
+                jpg_b64 = raw_data
+            else:
+                with open(jpg_path, "rb") as f:
+                    jpg_b64 = base64.b64encode(f.read()).decode("utf-8")
+                os.remove(jpg_path)
 
-        response = json.dumps({
+        self.addMessage(json.dumps({
             "type": "photo_response",
             "data": jpg_b64,
             "has_gps": gpx is not None
-        })
-        await websocket.send(response)
+        }))
 
 
     def handle_gpx_start(self,data):
@@ -113,6 +120,10 @@ class SocketHandler:
 
         self.ble_device.gpx_manager = GPXManager(lat, lon)
         self.ble_device.gpx_external_control = True
+
+        self.ble_device.gpx_external_control = True
+        if self.on_trail_state_changed:
+            self.on_trail_state_changed("engine")
 
         print("GPX control taken by Game Engine.")
 
@@ -127,7 +138,7 @@ class SocketHandler:
         if lat is not None and lon is not None:
             gpx.add_point(lat, lon)
 
-    async def handle_gpx_stop(self,data, websocket):
+    async def handle_gpx_stop(self,data):
         gpx = self.ble_device.gpx_manager
         if gpx is None:
             return
@@ -144,7 +155,7 @@ class SocketHandler:
             "type": "gpx_response",
             "gpx_xml": gpx_xml
         })
-        await websocket.send(response)
+        self.addMessage(response)
 
         self.ble_device.gpx_manager = None
         self.ble_device.gpx_external_control = False
