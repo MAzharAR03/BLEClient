@@ -102,6 +102,9 @@ class LayoutBuilder(QMainWindow):
         add_recenter_action.triggered.connect(lambda: self.create_special_button("recenter","Recenter"))
         self._recenter_btn = self.toolbar.widgetForAction(add_recenter_action)
 
+        add_rollHold_action = self.toolbar.addAction("Add Roll Hold Button")
+        add_rollHold_action.triggered.connect(lambda: self.create_special_button("rollHold","Hold for Roll"))
+
         add_image_action = self.toolbar.addAction("Add Image")
         add_image_action.triggered.connect(self.add_image_item)
         self._image_btn = self.toolbar.widgetForAction(add_image_action)
