@@ -317,10 +317,17 @@ class ServerGUI(QMainWindow):
 
     def on_config_mapper_clicked(self):
         self.config_mapper = ConfigMapper()
+        self.config_mapper.config_saved.connect(self.on_config_saved)
         self.config_mapper.show()
+
+    def on_config_saved(self, path):
+        if self.connected_device is not None and self.connected_device.gamepadManager is not None:
+            self.connected_device.gamepadManager.reload_mapping()
+            self.set_status("Gamepad config reloaded", "ok")
 
     def on_builder_button_clicked(self):
         self.builder_window = LayoutBuilder()
+        self.builder_window.config_saved.connect(self.on_config_saved)
         self.builder_window.show()
 
     def on_emulation_toggled(self, state):

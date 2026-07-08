@@ -80,6 +80,6 @@ async def test_emulation_control():
         print("Sent ENABLE_EMULATION")
 
 # Run one at a time:
-asyncio.run(test_photo())
+#asyncio.run(test_photo())
 #asyncio.run(test_gpx_trail())
 #asyncio.run(test_emulation_control())

@@ -2,11 +2,13 @@ import json
 import sys
 from pathlib import Path
 
+from PySide6.QtCore import Signal
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QMainWindow, QVBoxLayout, QWidget, QHBoxLayout, QLabel, QPushButton, QScrollArea, QFrame, \
     QFileDialog, QMessageBox, QTextEdit, QDialog, QApplication
 
 from src import AppSettings
+from src.ReadFile import resource_path
 from src.TutorialOverlay import TutorialOverlay
 from src.TutorialSteps import get_config_mapper_steps
 from src.XboxMapper.MapperHelperFunctions import rows_to_config, config_to_rows, get_android_inputs
@@ -15,6 +17,8 @@ from src.XboxMapper.XboxDictionary import XBOX_CONTROLS, ALWAYS_AVAILABLE, FLOAT
 
 
 class ConfigMapper(QMainWindow):
+
+    config_saved = Signal(str)
 
     def __init__(self):
         super().__init__()
@@ -28,7 +32,18 @@ class ConfigMapper(QMainWindow):
         self._row_widgets = {}
 
         self._build_ui()
+        self._load_current_config()
         self._maybe_show_tutorial()
+
+    def _load_current_config(self):
+        path = resource_path("config.cfg")
+        try:
+            with open(path, "r") as f:
+                config = json.load(f)
+            self._rows = config_to_rows(config)
+            self._build_rows()
+        except (OSError, json.JSONDecodeError):
+            pass
 
 
     def check_monitor_size(self, target_width, target_height):
@@ -202,9 +217,10 @@ class ConfigMapper(QMainWindow):
         layout.addLayout(button_row)
 
         def save():
-            path = "config.cfg"
+            path = resource_path("config.cfg")
             with open(path, "w") as f:
                 f.write(output)
+            self.config_saved.emit(path)
             QMessageBox.information(dialog, "Saved", f"Config saved to:\n{path}")
 
 

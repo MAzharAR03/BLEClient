@@ -143,6 +143,13 @@ class DeviceBLE:
     def pause_handler(self, sender, data):
         self.socketHandler.addMessage(json.dumps({"type": "pause"}))
         print("Pause triggered")
+        if emulation_state.enabled and self.gamepadManager is not None:
+            asyncio.create_task(self._pulse_event("toggle:pause"))
+
+    async def _pulse_event(self, input_key, hold=0.1):
+        self.gamepadManager.set_event(input_key, True)
+        await asyncio.sleep(hold)
+        self.gamepadManager.set_event(input_key, False)
 
     def step_handler(self, sender, data):
         if self.gpx_manager is not None and not self.gpx_external_control:

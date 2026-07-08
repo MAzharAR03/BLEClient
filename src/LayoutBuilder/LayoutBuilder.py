@@ -1,7 +1,7 @@
 import json
 import sys
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QColor, QGuiApplication
 from PySide6.QtWidgets import QGraphicsScene, QGraphicsView, QApplication, QMainWindow, QToolBar, QDockWidget, QWidget, \
     QFileDialog, QInputDialog
@@ -50,6 +50,8 @@ class ViewContainer(QWidget):
 
 
 class LayoutBuilder(QMainWindow):
+    config_saved = Signal(str)
+
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Android Layout Builder")
@@ -142,6 +144,7 @@ class LayoutBuilder(QMainWindow):
     def _open_config_mapper(self):
 
         self._config_mapper = ConfigMapper()
+        self._config_mapper.config_saved.connect(self.config_saved)
         self._config_mapper.show()
 
     def add_image_item(self):

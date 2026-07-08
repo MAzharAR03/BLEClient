@@ -2,14 +2,43 @@ import json
 
 import vgamepad as vg
 
-from src.ReadFile import read_file_b
+from src.ReadFile import resource_path
 from src.XboxMapper.Mapper import apply_control
+
+CONFIG_PATH = resource_path("config.cfg")
 
 
 class GamepadManager:
-    def __init__(self, config_path = "config.cfg"):
+    def __init__(self, config_path = CONFIG_PATH):
         self.gamepad = vg.VX360Gamepad()
-        self.mapping = json.loads(read_file_b(config_path))
+        self.config_path = config_path
+        self.mapping = {}
+        self.active_events = set()
+        self.reload_mapping()
+
+    def reload_mapping(self):
+        #Keeps the current mapping if the file is missing or invalid
+        try:
+            with open(self.config_path, "rb") as f:
+                self.mapping = json.loads(f.read())
+        except (OSError, json.JSONDecodeError) as e:
+            print(f"Could not load config from {self.config_path}: {e}")
+
+    def set_event(self, input_key, active):
+        if active:
+            self.active_events.add(input_key)
+        else:
+            self.active_events.discard(input_key)
+
+        for action_name, button_cfg in self.mapping.items():
+            if action_name.endswith("_joystick") or action_name.endswith("_trigger"):
+                continue
+            if not button_cfg:
+                continue
+            cfgs = button_cfg if isinstance(button_cfg, list) else [button_cfg]
+            if any(c.get("input") == input_key for c in cfgs):
+                apply_control(self.gamepad, action_name, pressed=active)
+        self.gamepad.update()
 
     def update_state(self, input_json):
         try:
@@ -23,6 +52,11 @@ class GamepadManager:
             inputs[f"toggle:{button['name']}"] = button["pressed"]
         inputs["toggle:stepping"] = True if state.get("stepping") else False
         inputs["float:pitch"] = state.get("pitch",0.0)
+        inputs["toggle:stepping"] = True if state.get("stepping") else False
+        inputs["float:pitch"] = state.get("pitch",0.0)
+
+        for event_key in self.active_events:      # keep pulsed events held
+            inputs[event_key] = True
 
         #Search for left and right joysticks in mapping configuration
         #Get value of x and y through user-defined or from sensor data
