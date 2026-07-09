@@ -52,8 +52,7 @@ class GamepadManager:
             inputs[f"toggle:{button['name']}"] = button["pressed"]
         inputs["toggle:stepping"] = True if state.get("stepping") else False
         inputs["float:pitch"] = state.get("pitch",0.0)
-        inputs["toggle:stepping"] = True if state.get("stepping") else False
-        inputs["float:pitch"] = state.get("pitch",0.0)
+        inputs["float:roll"] = state.get("roll",0.0)
 
         for event_key in self.active_events:      # keep pulsed events held
             inputs[event_key] = True
